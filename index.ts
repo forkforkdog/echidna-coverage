@@ -39,6 +39,7 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
   const functions: FunctionBlock[] = [];
   let currentFunction: FunctionBlock | null = null;
   let bracketCount = 0;
+  let functionBodyStarted = false;
 
   lines.forEach((line, index) => {
     const parts = line.split("|").map((part) => part.trim());
@@ -52,6 +53,7 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
     // Start new function block
     if (functionMatch) {
       bracketCount = 0;
+      functionBodyStarted = false;
       currentFunction = {
         name: functionMatch[1],
         lines: [],
@@ -68,53 +70,57 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
     if (currentFunction) {
       currentFunction.lines.push(line);
 
-      // Skip counting if line only contains closing brace
-      const trimmedContent = content.trim();
-      if (trimmedContent === "}") {
-        // Don't count closing brace as any type of line
-        null;
-      } else if (parts[1] === "*") {
-        currentFunction.coveredLines++;
-        currentFunction.isCovered = true;
-      } else if (parts[1] === "r") {
-        currentFunction.revertedLines++;
-        currentFunction.isReverted = true;
-        // If line is not empty and not a comment
-      } else if (
-        parts[1] === "" &&
-        trimmedContent !== "" &&
-        !trimmedContent.startsWith("//") &&
-        !trimmedContent.startsWith("/*") &&
-        !trimmedContent.startsWith("*") &&
-        !trimmedContent.startsWith("}") &&
-        !trimmedContent.startsWith("return") &&
-        !trimmedContent.includes("{") &&
-        !trimmedContent.includes(") {") &&
-        !trimmedContent.includes(");") &&
-        !trimmedContent.startsWith(")") &&
-        !trimmedContent.includes("external") &&
-        !trimmedContent.includes("internal") &&
-        !trimmedContent.includes("public") &&
-        !trimmedContent.includes("view")
-      ) {
-        console.log(trimmedContent, "🚧");
-        currentFunction.untouchedLines++;
+      // Start counting only after we find the opening brace
+      if (content.includes("{")) {
+        bracketCount++;
+        if (bracketCount === 1) {
+          functionBodyStarted = true;
+          return; // Skip counting the opening brace line
+        }
       }
 
-      if (content.includes("{")) bracketCount++;
+      // Only count lines if we're inside the function body
+      if (functionBodyStarted) {
+        const trimmedContent = content.trim();
+        if (trimmedContent === "}") {
+          // Don't count closing brace
+          null;
+        } else if (parts[1] === "*") {
+          currentFunction.coveredLines++;
+          currentFunction.isCovered = true;
+        } else if (parts[1] === "r") {
+          currentFunction.revertedLines++;
+          currentFunction.isReverted = true;
+        } else if (
+          parts[1] === "" &&
+          trimmedContent !== "" &&
+          !trimmedContent.startsWith("//") &&
+          !trimmedContent.startsWith("/*") &&
+          !trimmedContent.startsWith("*") &&
+          !trimmedContent.startsWith("}") &&
+          !trimmedContent.startsWith("return") &&
+          !trimmedContent.includes("{") &&
+          !trimmedContent.includes(") {") &&
+          !trimmedContent.includes(");") &&
+          !trimmedContent.startsWith(")") &&
+          !trimmedContent.includes("external") &&
+          !trimmedContent.includes("internal") &&
+          !trimmedContent.includes("public") &&
+          !trimmedContent.includes("view")
+        ) {
+          console.log("untouched -> ", trimmedContent);
+          currentFunction.untouchedLines++;
+        }
+      }
+
       if (content.includes("}")) {
         bracketCount--;
         if (bracketCount === 0) {
           functions.push(currentFunction);
           currentFunction = null;
+          functionBodyStarted = false;
         }
       }
-    }
-  });
-
-  functions.map((f) => {
-    if (f.coveredLines > 0 && f.untouchedLines === 0 && f.revertedLines === 0) {
-      f.isTotallyCovered = true;
     }
   });
 
