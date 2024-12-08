@@ -13,7 +13,7 @@ interface FileData {
 }
 
 interface CoverageStats {
-  totalLines: number;
+  totalFunctions: number;
   coveredLines: number;
   revertedLines: number;
   untouchedLines: number;
@@ -32,6 +32,7 @@ interface FunctionBlock {
   coveredLines: number;
   untouchedLines: number;
   revertedLines: number;
+  isTotallyCovered: boolean;
 }
 
 function parseFunctions(lines: string[]): FunctionBlock[] {
@@ -40,11 +41,13 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
   let bracketCount = 0;
 
   lines.forEach((line, index) => {
-    const parts = line.split("|").map(part => part.trim());
+    const parts = line.split("|").map((part) => part.trim());
     if (parts.length < 3) return;
 
     const content = parts[2];
-    const functionMatch = content.match(/function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/);
+    const functionMatch = content.match(
+      /function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/
+    );
 
     // Start new function block
     if (functionMatch) {
@@ -56,7 +59,8 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
         isReverted: false,
         coveredLines: 0,
         untouchedLines: 0,
-        revertedLines: 0
+        revertedLines: 0,
+        isTotallyCovered: false,
       };
     }
 
@@ -75,8 +79,15 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
       } else if (parts[1] === "r") {
         currentFunction.revertedLines++;
         currentFunction.isReverted = true;
-      // If line is not empty and not a comment
-      } else if (parts[1] === "" && trimmedContent !== "") {
+        // If line is not empty and not a comment
+      } else if (
+        parts[1] === "" &&
+        trimmedContent !== "" &&
+        !trimmedContent.startsWith("//") &&
+        !trimmedContent.startsWith("/*") &&
+        !trimmedContent.startsWith("*") &&
+        !trimmedContent.startsWith("}")
+      ) {
         currentFunction.untouchedLines++;
       }
 
@@ -91,26 +102,33 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
     }
   });
 
+  functions.map((f) => {
+    if (f.coveredLines > 0 && f.untouchedLines === 0 && f.revertedLines === 0) {
+      f.isTotallyCovered = true;
+    }
+  });
+
   return functions;
 }
 
 function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
-  // console.log("functions ----> \n", functions)
-
   const totalFunctions = functions.length;
-  const coveredFunctions = functions.filter(f => f.isCovered).length;
-  const revertedFunctions = functions.filter(f => f.isReverted).length;
-
-  const totalUntouchedLines = functions.reduce((acc, f) => acc + f.untouchedLines, 0);
-  const totalRevertedLines = functions.reduce((acc, f) => acc + f.revertedLines, 0);
-  const totalCoveredLines = functions.reduce((acc, f) => acc + f.coveredLines, 0);
+  const coveredFunctions = functions.filter((f) => f.isTotallyCovered).length;
+  const coveredLines = functions.reduce((acc, f) => acc + f.coveredLines, 0);
+  const revertedFunctions = functions.filter((f) => f.isReverted).length;
+  const totalUntouchedLines = functions.reduce(
+    (acc, f) => acc + f.untouchedLines,
+    0
+  );
 
   return {
-    totalLines: totalFunctions,
-    coveredLines: coveredFunctions,
+    totalFunctions: totalFunctions,
+    coveredLines: coveredLines,
     revertedLines: revertedFunctions,
     untouchedLines: totalUntouchedLines,
-    coveragePercentage: Number(((coveredFunctions / totalFunctions) * 100).toFixed(2))
+    coveragePercentage: Number(
+      ((coveredFunctions / totalFunctions) * 100).toFixed(2)
+    ),
   };
 }
 
@@ -146,10 +164,10 @@ function processFileContent(fileContent: string): FileDataWithCoverage[] {
 
   return Object.keys(fileDataMap).map((filePath) => {
     const functionBlocks = parseFunctions(fileDataMap[filePath]);
-    const lineData: LineData[] = functionBlocks.map(fb => ({
+    const lineData: LineData[] = functionBlocks.map((fb) => ({
       functionName: fb.name,
       covered: fb.isCovered,
-      reverted: fb.isReverted
+      reverted: fb.isReverted,
     }));
     return {
       path: filePath,
@@ -169,10 +187,5 @@ const filePath = "./data/test.txt";
 const result = readFileAndProcess(filePath);
 result.forEach((file) => {
   console.log(`\nFile: ${file.path}`);
-  console.log(`Coverage: ${file.coverage.coveragePercentage}%`);
-  console.log(
-    `Functions: ${file.coverage.coveredLines}/${file.coverage.totalLines} covered`
-  );
-  console.log(`Reverted lines: ${file.coverage.revertedLines}`);
-  console.log(`Untouched lines: ${file.coverage.untouchedLines}`);
+  console.table(file.coverage);
 });
