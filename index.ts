@@ -3,8 +3,9 @@ import * as path from "path";
 
 interface LineData {
   functionName: string;
-  covered: boolean;
+  touched: boolean;
   reverted: boolean;
+  isFullyCovered: boolean;
 }
 
 interface FileData {
@@ -34,6 +35,89 @@ interface FunctionBlock {
   untouchedLines: number;
   revertedLines: number;
   isTotallyCovered: boolean;
+}
+
+interface ProgramOptions {
+  verbose: boolean;
+  filePath: string;
+  outputFormat: 'table' | 'json';
+  threshold: number;
+  help: boolean;
+}
+
+const DEFAULT_CONFIG: ProgramOptions = {
+  verbose: false,
+  filePath: './data/test.txt',
+  outputFormat: 'table',
+  threshold: 0,
+  help: false
+};
+
+function showHelp(): void {
+  console.log(`
+Coverage Report Generator
+
+Usage:
+  npm run coverage [options]
+
+Options:
+  -h, --help              Show this help message
+  -v, --verbose          Show detailed output
+  -f, --file <path>      Path to coverage file (default: ./data/test.txt)
+  --format <type>        Output format: 'table' or 'json' (default: table)
+  -t, --threshold <n>    Coverage threshold percentage (default: 0)
+  `);
+  process.exit(0);
+}
+
+function parseArgs(): ProgramOptions {
+  const args = process.argv.slice(2);
+  const options = { ...DEFAULT_CONFIG };
+
+  try {
+    for (let i = 0; i < args.length; i++) {
+      switch (args[i]) {
+        case '--help':
+        case '-h':
+          options.help = true;
+          break;
+        case '--verbose':
+        case '-v':
+          options.verbose = true;
+          break;
+        case '--file':
+        case '-f':
+          options.filePath = args[++i];
+          break;
+        case '--format':
+          const format = args[++i];
+          if (format !== 'table' && format !== 'json') {
+            throw new Error(`Invalid format: ${format}`);
+          }
+          options.outputFormat = format;
+          break;
+        case '--threshold':
+        case '-t':
+          const threshold = Number(args[++i]);
+          if (isNaN(threshold)) {
+            throw new Error(`Invalid threshold: ${args[i]}`);
+          }
+          options.threshold = threshold;
+          break;
+        default:
+          throw new Error(`Unknown option: ${args[i]}`);
+      }
+    }
+  } catch (error) {
+    console.error(`Error: ${error}`);
+    showHelp();
+  }
+
+  if (options.help) {
+    showHelp();
+  }
+
+  return options;
 }
 
 function parseFunctions(lines: string[]): FunctionBlock[] {
@@ -251,8 +335,9 @@ function processFileContent(fileContent: string): FileDataWithCoverage[] {
     const functionBlocks = parseFunctions(fileDataMap[filePath]);
     const lineData: LineData[] = functionBlocks.map((fb) => ({
       functionName: fb.name,
-      covered: fb.isCovered,
+      touched: fb.isCovered,
       reverted: fb.isReverted,
+      isFullyCovered: fb.isTotallyCovered,
     }));
     return {
       path: filePath,
@@ -267,10 +352,47 @@ function readFileAndProcess(filePath: string): FileDataWithCoverage[] {
   return processFileContent(fileContent);
 }
 
-// Example usage with formatted output
-const filePath = "./data/test.txt";
-const result = readFileAndProcess(filePath);
-result.forEach((file) => {
-  console.log(`\nFile: ${file.path}`);
-  console.table(file.coverage);
-});
+const main = () => {
+  const options = parseArgs();
+
+  if (options.verbose) {
+    console.log('Running with options:');
+    console.log(options);
+  }
+
+  const result = readFileAndProcess(options.filePath);
+
+  result.forEach((data) => {
+    console.log(`\nFile: ${data.path}`);
+
+    if (options.outputFormat === 'json') {
+      console.log(JSON.stringify(data.coverage, null, 2));
+    } else {
+      console.table(data.coverage);
+
+      if (options.verbose) {
+        const uncoveredFunctions = data.data.filter(d => !d.isFullyCovered);
+        if (uncoveredFunctions.length > 0) {
+          console.log("\nNot fully covered functions:");
+          console.table(
+            uncoveredFunctions.map(d => ({
+              functionName: d.functionName,
+              touched: d.touched,
+              reverted: d.reverted,
+            }))
+          );
+        }
+      }
+    }
+
+    if (data.coverage.coveragePercentage < options.threshold) {
+      console.log(
+        `\nWarning ❌: Coverage ${data.coverage.coveragePercentage}% below threshold ${options.threshold}%`
+      );
+    }
+  });
+};
+
+main();
+
+// ex: ts-node index.ts -v -f ./data/test.txt --format table -t 90
