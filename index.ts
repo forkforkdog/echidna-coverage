@@ -18,6 +18,7 @@ interface CoverageStats {
   revertedLines: number;
   untouchedLines: number;
   coveragePercentage: number;
+  fullyCoveredFunctions: number;
 }
 
 interface FileDataWithCoverage extends FileData {
@@ -40,6 +41,8 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
   let currentFunction: FunctionBlock | null = null;
   let bracketCount = 0;
   let functionBodyStarted = false;
+  let isViewExternal = false;
+  let functionStartLine = 0;
 
   lines.forEach((line, index) => {
     const parts = line.split("|").map((part) => part.trim());
@@ -50,36 +53,57 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
       /function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/
     );
 
-    // Start new function block
+    // Check for function start
     if (functionMatch) {
       bracketCount = 0;
       functionBodyStarted = false;
+      functionStartLine = index;
+      isViewExternal = false;
+
+      // Check if the function declaration line contains both view and external
+      if (content.includes("external") && content.includes("view")) {
+        isViewExternal = true;
+      }
+
       currentFunction = {
         name: functionMatch[1],
         lines: [],
         isCovered: false,
         isReverted: false,
-        coveredLines: 0,
+        coveredLines: 1,
         untouchedLines: 0,
         revertedLines: 0,
         isTotallyCovered: false,
       };
     }
 
-    // Track function content
+    // Check lines between function declaration and opening brace for view/external
+    if (currentFunction && !functionBodyStarted) {
+      if (
+        content.trim() === "external" ||
+        content.trim() === "view" ||
+        (content.includes("external") && content.includes("view"))
+      ) {
+        isViewExternal = true;
+      }
+    }
+
     if (currentFunction) {
       currentFunction.lines.push(line);
 
-      // Start counting only after we find the opening brace
       if (content.includes("{")) {
         bracketCount++;
         if (bracketCount === 1) {
           functionBodyStarted = true;
-          return; // Skip counting the opening brace line
+          // If we found both view and external, discard this function
+          if (isViewExternal) {
+            currentFunction = null;
+            return;
+          }
+          return;
         }
       }
 
-      // Only count lines if we're inside the function body
       if (functionBodyStarted) {
         const trimmedContent = content.trim();
         if (trimmedContent === "}") {
@@ -99,12 +123,18 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
 
       if (content.includes("}")) {
         bracketCount--;
-        if (bracketCount === 0) {
+        if (bracketCount === 0 && currentFunction && !isViewExternal) {
           functions.push(currentFunction);
           currentFunction = null;
           functionBodyStarted = false;
         }
       }
+    }
+  });
+
+  functions.map((f) => {
+    if (f.coveredLines > 0 && f.untouchedLines === 0 && f.revertedLines === 0) {
+      f.isTotallyCovered = true;
     }
   });
 
@@ -177,6 +207,7 @@ function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
 
   return {
     totalFunctions: totalFunctions,
+    fullyCoveredFunctions: coveredFunctions,
     coveredLines: coveredLines,
     revertedLines: revertedFunctions,
     untouchedLines: totalUntouchedLines,
