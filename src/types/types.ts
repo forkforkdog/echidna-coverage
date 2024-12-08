@@ -40,4 +40,5 @@ export interface ProgramOptions {
   outputFormat: "table" | "json";
   threshold: number;
   help: boolean;
+  contract?: string;
 }

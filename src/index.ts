@@ -10,10 +10,17 @@ const main = () => {
     console.log(options);
   }
 
-  const result = readFileAndProcess(options.filePath);
-
+  let result = readFileAndProcess(options.filePath);
+  if (options.contract) {
+    result = result.filter(file =>
+      file.path.toLowerCase().includes(options.contract!.toLowerCase())
+    );
+  }
   result.forEach((data) => {
-    console.log(`\nFile: ${data.path}`);
+    console.log("\n\n")
+    console.log("---------------------------");
+    console.log(`\x1b[1m File: ${data.path}`);
+    console.log("---------------------------");
 
     if (options.outputFormat === "json") {
       console.log(JSON.stringify(data.coverage, null, 2));
@@ -33,6 +40,7 @@ const main = () => {
           );
         }
       }
+      console.log("===========================");
     }
 
     if (data.coverage.coveragePercentage < options.threshold) {

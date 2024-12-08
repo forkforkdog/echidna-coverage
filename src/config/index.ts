@@ -6,4 +6,5 @@ export const DEFAULT_CONFIG: ProgramOptions = {
   outputFormat: "table",
   threshold: 0,
   help: false,
+  contract: undefined,
 };

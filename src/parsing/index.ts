@@ -8,7 +8,6 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
   let bracketCount = 0;
   let functionBodyStarted = false;
   let isViewExternal = false;
-  let functionStartLine = 0;
 
   lines.forEach((line, index) => {
     const parts = line.split("|").map((part) => part.trim());
@@ -23,7 +22,6 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
     if (functionMatch) {
       bracketCount = 0;
       functionBodyStarted = false;
-      functionStartLine = index;
       isViewExternal = false;
 
       // Check if the function declaration line contains both view and external
@@ -82,7 +80,6 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
           currentFunction.revertedLines++;
           currentFunction.isReverted = true;
         } else if (parts[1] === "" && isUntouchedLine(content)) {
-          console.log("untouched -> ", trimmedContent);
           currentFunction.untouchedLines++;
         }
       }
@@ -171,15 +168,16 @@ function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
     0
   );
 
+  const coveragePercentage = coveredFunctions === 0 && totalFunctions === 0 ? 0 : Number(
+    ((coveredFunctions / totalFunctions) * 100).toFixed(2)
+  );
   return {
     totalFunctions: totalFunctions,
     fullyCoveredFunctions: coveredFunctions,
     coveredLines: coveredLines,
     revertedLines: revertedFunctions,
     untouchedLines: totalUntouchedLines,
-    coveragePercentage: Number(
-      ((coveredFunctions / totalFunctions) * 100).toFixed(2)
-    ),
+    coveragePercentage: coveragePercentage,
   };
 }
 
@@ -198,17 +196,18 @@ function processFileContent(fileContent: string): FileDataWithCoverage[] {
         pathParts[pathParts.length - 2],
         pathParts[pathParts.length - 1]
       );
-      fileDataMap[currentPath] = [];
-    } else if (currentPath) {
       if (
         currentPath.includes("openzeppelin") ||
         currentPath.includes("forge") ||
-        currentPath.includes(".t.sol") ||
-        currentPath.includes(".s.sol") ||
+        currentPath.endsWith(".t.sol") ||
+        currentPath.endsWith(".s.sol") ||
         currentPath.includes("solady")
       ) {
+        currentPath = "";
         return;
       }
+      fileDataMap[currentPath] = [];
+    } else if (currentPath) {
       fileDataMap[currentPath].push(line);
     }
   });

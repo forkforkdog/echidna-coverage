@@ -28,7 +28,7 @@ ts-node index.ts -f ./coverage.txt
 With all options:
 
 ```bash
-ts-node index.ts -v -f ./data/test.txt --format table -t 90
+ts-node index.ts -v -f ./data/test.txt --format table -t 90 --contract TestContract.sol
 ```
 
 ## Options
@@ -37,11 +37,12 @@ ts-node index.ts -v -f ./data/test.txt --format table -t 90
 - --format <type>: Output format - 'table' or 'json' (default: table)
 - -t, --threshold <n>: Coverage threshold percentage (default: 0)
 - -h, --help: Show help message
+- -c, --contract: filter by contract name matching
 
 ## Output Example
 
 ```bash
-File: contracts/Mock3PL.sol
+File: contracts/TestContract.sol
 ┌─────────────┬───────┐
 │   (index)   │ Value │
 ├─────────────┼───────┤
@@ -51,6 +52,10 @@ File: contracts/Mock3PL.sol
 │ coverage    │  80%  │
 └─────────────┴───────┘
 ```
+
+## Note
+
+- Test and scripts files are filtered out
 
 ## Contributing
 

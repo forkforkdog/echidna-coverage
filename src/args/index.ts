@@ -14,6 +14,7 @@ Options:
   -f, --file <path>      Path to coverage file (default: ./data/test.txt)
   --format <type>        Output format: 'table' or 'json' (default: table)
   -t, --threshold <n>    Coverage threshold percentage (default: 0)
+  -c, --contract <name>      Contract name
   `);
   process.exit(0);
 }
@@ -52,6 +53,13 @@ export function parseArgs(): ProgramOptions {
           }
           options.threshold = threshold;
           break;
+        case "--contract":
+        case "-c":
+            if (!args[i + 1] || args[i + 1].startsWith("-")) {
+              throw new Error("Contract name is required");
+            }
+            options.contract = args[++i];
+            break;
         default:
           throw new Error(`Unknown option: ${args[i]}`);
       }
