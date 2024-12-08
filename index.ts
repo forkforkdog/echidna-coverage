@@ -86,8 +86,18 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
         !trimmedContent.startsWith("//") &&
         !trimmedContent.startsWith("/*") &&
         !trimmedContent.startsWith("*") &&
-        !trimmedContent.startsWith("}")
+        !trimmedContent.startsWith("}") &&
+        !trimmedContent.startsWith("return") &&
+        !trimmedContent.includes("{") &&
+        !trimmedContent.includes(") {") &&
+        !trimmedContent.includes(");") &&
+        !trimmedContent.startsWith(")") &&
+        !trimmedContent.includes("external") &&
+        !trimmedContent.includes("internal") &&
+        !trimmedContent.includes("public") &&
+        !trimmedContent.includes("view")
       ) {
+        console.log(trimmedContent, "🚧");
         currentFunction.untouchedLines++;
       }
 
@@ -112,6 +122,17 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
 }
 
 function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
+  // console.log("functions ----> \n");
+  // functions.forEach((f) => {
+  //   console.log("name:", f.name);
+  //   console.log("Covered lines:", f.coveredLines);
+  //   console.log("Untouched lines:",f.untouchedLines);
+  //   console.log("Reverted Lines:", f.revertedLines);
+  //   console.log("Is covered: ",f.isCovered);
+  //   console.log("is reverted", f.isReverted);
+  //   console.log("isTotallyCovered", f.isTotallyCovered);
+  // });
+
   const totalFunctions = functions.length;
   const coveredFunctions = functions.filter((f) => f.isTotallyCovered).length;
   const coveredLines = functions.reduce((acc, f) => acc + f.coveredLines, 0);
