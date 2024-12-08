@@ -91,23 +91,7 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
         } else if (parts[1] === "r") {
           currentFunction.revertedLines++;
           currentFunction.isReverted = true;
-        } else if (
-          parts[1] === "" &&
-          trimmedContent !== "" &&
-          !trimmedContent.startsWith("//") &&
-          !trimmedContent.startsWith("/*") &&
-          !trimmedContent.startsWith("*") &&
-          !trimmedContent.startsWith("}") &&
-          !trimmedContent.startsWith("return") &&
-          !trimmedContent.includes("{") &&
-          !trimmedContent.includes(") {") &&
-          !trimmedContent.includes(");") &&
-          !trimmedContent.startsWith(")") &&
-          !trimmedContent.includes("external") &&
-          !trimmedContent.includes("internal") &&
-          !trimmedContent.includes("public") &&
-          !trimmedContent.includes("view")
-        ) {
+        } else if (parts[1] === "" && isUntouchedLine(content)) {
           console.log("untouched -> ", trimmedContent);
           currentFunction.untouchedLines++;
         }
@@ -125,6 +109,49 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
   });
 
   return functions;
+}
+
+function isUntouchedLine(content: string): boolean {
+  const trimmedContent = content.trim();
+
+  // Skip empty lines
+  if (trimmedContent === "") return false;
+
+  // Skip function declarations and structural elements
+  if (
+    trimmedContent.startsWith("function") ||
+    trimmedContent === "{" ||
+    trimmedContent === "}" ||
+    trimmedContent.includes(") {") ||
+    trimmedContent === ");"
+  )
+    return false;
+
+  // Skip modifier keywords
+  if (
+    trimmedContent.includes("public") ||
+    trimmedContent.includes("private") ||
+    trimmedContent.includes("external") ||
+    trimmedContent.includes("internal") ||
+    trimmedContent.includes("view")
+  )
+    return false;
+
+  // Standalone brackets
+  if (trimmedContent === "(" || trimmedContent === ")") return false;
+
+  // Skip else blocks
+  if (trimmedContent === "} else {") return false;
+
+  // Handle comments - don't skip single line comments
+  if (
+    trimmedContent.startsWith("/*") ||
+    trimmedContent.startsWith("*") ||
+    trimmedContent.startsWith("//")
+  )
+    return false;
+
+  return true;
 }
 
 function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
