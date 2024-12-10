@@ -1,23 +1,17 @@
-
 import { parseArgs } from "./args";
 import { readFileAndProcess } from "./parsing";
 
 const main = () => {
   const options = parseArgs();
 
-  if (options.verbose) {
-    console.log("Running with options:");
-    console.log(options);
-  }
-
   let result = readFileAndProcess(options.filePath);
   if (options.contract) {
-    result = result.filter(file =>
+    result = result.filter((file) =>
       file.path.toLowerCase().includes(options.contract!.toLowerCase())
     );
   }
   result.forEach((data) => {
-    console.log("\n\n")
+    console.log("\n\n");
     console.log("---------------------------");
     console.log(`\x1b[1m File: ${data.path}`);
     console.log("---------------------------");
@@ -36,6 +30,7 @@ const main = () => {
               functionName: d.functionName,
               touched: d.touched,
               reverted: d.reverted,
+              untouchedLines: d.untouchedLines,
             }))
           );
         }
@@ -53,4 +48,4 @@ const main = () => {
 
 main();
 
-// ex: ts-node index.ts -v -f ./data/test.txt --format table -t 90
+// ex: ts-node index.ts -v -f ./data/test.txt --format table -t 90 --contract xxx.sol

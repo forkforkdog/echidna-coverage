@@ -219,6 +219,7 @@ function processFileContent(fileContent: string): FileDataWithCoverage[] {
       touched: fb.isCovered,
       reverted: fb.isReverted,
       isFullyCovered: fb.isTotallyCovered,
+      untouchedLines: fb.untouchedLines,
     }));
     return {
       path: filePath,

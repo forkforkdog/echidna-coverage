@@ -56,6 +56,7 @@ File: contracts/TestContract.sol
 ## Note
 
 - Test and scripts files are filtered out
+- View function are trimmed out, as they are not relevant
 
 ## Contributing
 

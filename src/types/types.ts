@@ -3,6 +3,7 @@ export interface LineData {
   touched: boolean;
   reverted: boolean;
   isFullyCovered: boolean;
+  untouchedLines: number;
 }
 
 export interface FileData {
