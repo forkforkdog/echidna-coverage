@@ -33,6 +33,8 @@ export interface FunctionBlock {
   untouchedLines: number;
   revertedLines: number;
   isTotallyCovered: boolean;
+  revertedContent: string[];
+  untouchedContent: string[];
 }
 
 export interface ProgramOptions {

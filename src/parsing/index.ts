@@ -38,6 +38,8 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
         untouchedLines: 0,
         revertedLines: 0,
         isTotallyCovered: false,
+        revertedContent: [],
+        untouchedContent: [],
       };
     }
 
@@ -79,8 +81,10 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
         } else if (parts[1] === "r") {
           currentFunction.revertedLines++;
           currentFunction.isReverted = true;
+          currentFunction.revertedContent.push(content);
         } else if (parts[1] === "" && isUntouchedLine(content)) {
           currentFunction.untouchedLines++;
+          currentFunction.untouchedContent.push(content);
         }
       }
 
