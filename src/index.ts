@@ -12,9 +12,9 @@ const main = () => {
   }
   result.forEach((data) => {
     console.log("\n\n");
-    console.log("---------------------------");
+    console.log("=====================================");
     console.log(`\x1b[1m File: ${data.path}`);
-    console.log("---------------------------");
+    console.log("=====================================");
 
     if (options.outputFormat === "json") {
       console.log(JSON.stringify(data.coverage, null, 2));
@@ -33,6 +33,27 @@ const main = () => {
               untouchedLines: d.untouchedLines,
             }))
           );
+          if (options.veryVerbose) {
+            uncoveredFunctions.forEach((f) => {
+              if (f.untouchedContent.length > 0 || f.revertedContent.length > 0) {
+                console.log(`Function: ${f.functionName}\n\n`);
+              }
+              if (f.untouchedContent.length > 0) {
+                console.log("Untouched lines for: \n");
+                f.untouchedContent.forEach((line) => {
+                  console.log(line);
+                });
+                console.log("\n")
+              }
+
+              if (f.revertedContent.length > 0) {
+                console.log("Reverted lines: \n");
+                f.revertedContent.forEach((line) => {
+                  console.log(line);
+                });
+              }
+            });
+          }
         }
       }
       console.log("===========================");

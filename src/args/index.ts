@@ -11,6 +11,7 @@ Usage:
 Options:
   -h, --help              Show this help message
   -v, --verbose          Show detailed output
+  -vv, --very-verbose    Show very detailed output
   -f, --file <path>      Path to coverage file (default: ./data/test.txt)
   --format <type>        Output format: 'table' or 'json' (default: table)
   -t, --threshold <n>    Coverage threshold percentage (default: 0)
@@ -33,6 +34,11 @@ export function parseArgs(): ProgramOptions {
         case "--verbose":
         case "-v":
           options.verbose = true;
+          break;
+        case "--very-verbose":
+        case "-vv":
+          options.verbose = true;
+          options.veryVerbose = true;
           break;
         case "--file":
         case "-f":

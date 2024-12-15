@@ -224,6 +224,8 @@ function processFileContent(fileContent: string): FileDataWithCoverage[] {
       reverted: fb.isReverted,
       isFullyCovered: fb.isTotallyCovered,
       untouchedLines: fb.untouchedLines,
+      revertedContent: fb.revertedContent,
+      untouchedContent: fb.untouchedContent,
     }));
     return {
       path: filePath,

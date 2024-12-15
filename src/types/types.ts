@@ -4,6 +4,8 @@ export interface LineData {
   reverted: boolean;
   isFullyCovered: boolean;
   untouchedLines: number;
+  revertedContent: string[];
+  untouchedContent: string[];
 }
 
 export interface FileData {
@@ -44,4 +46,5 @@ export interface ProgramOptions {
   threshold: number;
   help: boolean;
   contract?: string;
+  veryVerbose: boolean;
 }
