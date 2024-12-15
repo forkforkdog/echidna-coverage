@@ -8,4 +8,5 @@ export const DEFAULT_CONFIG: ProgramOptions = {
   threshold: 70,
   help: false,
   contract: undefined,
+  echidnaFolder: undefined,
 };

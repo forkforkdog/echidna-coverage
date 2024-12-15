@@ -34,7 +34,8 @@ ts-node index.ts -v -f ./data/test.txt --format table -t 90 --contract TestContr
 ## Options
 - -v, --verbose: Show detailed output including uncovered functions
 - -vv, --very-verbose: verbose mode + add logs of untouched lines and reverted lines
-- -f, --file <path>: Path to coverage file (default: ./data/test.txt)
+- -f, --file <path>: Path to coverage file.txt (default: ./data/test.txt)
+- -ef, --echidna-folder <path>: path to the root of your directory containing the `echidna` folder
 - --format <type>: Output format - 'table' or 'json' (default: table)
 - -t, --threshold <n>: Coverage threshold percentage (default: 70)
 - -h, --help: Show help message

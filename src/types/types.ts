@@ -47,4 +47,5 @@ export interface ProgramOptions {
   help: boolean;
   contract?: string;
   veryVerbose: boolean;
+  echidnaFolder?: string;
 }
