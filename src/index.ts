@@ -70,4 +70,3 @@ const main = () => {
 
 main();
 
-// ex: ts-node index.ts -v -f ./data/test.txt --format table -t 90 --contract xxx.sol

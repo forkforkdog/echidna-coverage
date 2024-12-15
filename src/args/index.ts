@@ -14,7 +14,7 @@ Options:
   -vv, --very-verbose    Show very detailed output
   -f, --file <path>      Path to coverage file (default: ./data/test.txt)
   --format <type>        Output format: 'table' or 'json' (default: table)
-  -t, --threshold <n>    Coverage threshold percentage (default: 0)
+  -t, --threshold <n>    Coverage threshold percentage (default: 70)
   -c, --contract <name>      Contract name
   `);
   process.exit(0);

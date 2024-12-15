@@ -5,7 +5,7 @@ export const DEFAULT_CONFIG: ProgramOptions = {
   veryVerbose: false,
   filePath: "./data/test.txt",
   outputFormat: "table",
-  threshold: 0,
+  threshold: 70,
   help: false,
   contract: undefined,
 };

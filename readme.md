@@ -33,9 +33,10 @@ ts-node index.ts -v -f ./data/test.txt --format table -t 90 --contract TestContr
 
 ## Options
 - -v, --verbose: Show detailed output including uncovered functions
+- -vv, --very-verbose: verbose mode + add logs of untouched lines and reverted lines
 - -f, --file <path>: Path to coverage file (default: ./data/test.txt)
 - --format <type>: Output format - 'table' or 'json' (default: table)
-- -t, --threshold <n>: Coverage threshold percentage (default: 0)
+- -t, --threshold <n>: Coverage threshold percentage (default: 70)
 - -h, --help: Show help message
 - -c, --contract: filter by contract name matching
 
@@ -43,14 +44,16 @@ ts-node index.ts -v -f ./data/test.txt --format table -t 90 --contract TestContr
 
 ```bash
 File: contracts/TestContract.sol
-┌─────────────┬───────┐
-│   (index)   │ Value │
-├─────────────┼───────┤
-│ totalLines  │  15   │
-│ coveredLines│  12   │
-│ revertedLines│  1   │
-│ coverage    │  80%  │
-└─────────────┴───────┘
+┌───────────────────────┬────────┐
+│        (index)        │ Values │
+├───────────────────────┼────────┤
+│    totalFunctions     │   45   │
+│ fullyCoveredFunctions │   31   │
+│     coveredLines      │  297   │
+│     revertedLines     │   0    │
+│    untouchedLines     │   17   │
+│  coveragePercentage   │ 68.89  │
+└───────────────────────┴────────┘
 ```
 
 ## Note
