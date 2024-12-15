@@ -152,17 +152,6 @@ function isUntouchedLine(content: string): boolean {
 }
 
 function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
-  // console.log("functions ----> \n");
-  // functions.forEach((f) => {
-  //   console.log("name:", f.name);
-  //   console.log("Covered lines:", f.coveredLines);
-  //   console.log("Untouched lines:",f.untouchedLines);
-  //   console.log("Reverted Lines:", f.revertedLines);
-  //   console.log("Is covered: ",f.isCovered);
-  //   console.log("is reverted", f.isReverted);
-  //   console.log("isTotallyCovered", f.isTotallyCovered);
-  // });
-
   const totalFunctions = functions.length;
   const coveredFunctions = functions.filter((f) => f.isTotallyCovered).length;
   const coveredLines = functions.reduce((acc, f) => acc + f.coveredLines, 0);

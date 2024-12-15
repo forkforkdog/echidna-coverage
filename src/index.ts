@@ -1,5 +1,6 @@
 import { parseArgs } from "./args";
 import { readFileAndProcess } from "./parsing";
+import { style, ICONS } from './style';
 
 const main = () => {
   const options = parseArgs();
@@ -11,10 +12,10 @@ const main = () => {
     );
   }
   result.forEach((data) => {
-    console.log("\n\n");
-    console.log("=====================================");
-    console.log(`\x1b[1m File: ${data.path}`);
-    console.log("=====================================");
+    console.log("\n");
+    console.log(style.dim("═".repeat(50)));
+    console.log(style.header(`${ICONS.FILE} File: ${data.path}`));
+    console.log(style.dim("═".repeat(50)));
 
     if (options.outputFormat === "json") {
       console.log(JSON.stringify(data.coverage, null, 2));
@@ -24,7 +25,7 @@ const main = () => {
       if (options.verbose) {
         const uncoveredFunctions = data.data.filter((d) => !d.isFullyCovered);
         if (uncoveredFunctions.length > 0) {
-          console.log("\nNot fully covered functions:");
+          console.log(style.warning(`\n${ICONS.WARNING} Not fully covered functions:`));
           console.table(
             uncoveredFunctions.map((d) => ({
               functionName: d.functionName,
@@ -33,37 +34,37 @@ const main = () => {
               untouchedLines: d.untouchedLines,
             }))
           );
+
           if (options.veryVerbose) {
             uncoveredFunctions.forEach((f) => {
               if (f.untouchedContent.length > 0 || f.revertedContent.length > 0) {
-                console.log(`Function: ${f.functionName}\n\n`);
+                console.log(style.header(`\nFunction: ${f.functionName}`));
               }
               if (f.untouchedContent.length > 0) {
-                console.log("Untouched lines for: \n");
+                console.log(style.error(`${ICONS.ERROR} Untouched lines:`));
                 f.untouchedContent.forEach((line) => {
-                  console.log(line);
+                  console.log(style.dim(line));
                 });
-                console.log("\n")
               }
-
               if (f.revertedContent.length > 0) {
-                console.log("Reverted lines: \n");
+                console.log(style.warning(`\n${ICONS.WARNING} Reverted lines:`));
                 f.revertedContent.forEach((line) => {
-                  console.log(line);
+                  console.log(style.dim(line));
                 });
               }
             });
           }
         }
       }
-      console.log("===========================");
     }
 
     if (data.coverage.coveragePercentage < options.threshold) {
-      console.log(
-        `\nWarning ❌: Coverage ${data.coverage.coveragePercentage}% below threshold ${options.threshold}%`
-      );
+      console.log(style.error(
+        `\n${ICONS.ERROR} Warning: Coverage ${data.coverage.coveragePercentage}% below threshold ${options.threshold}%`
+      ));
     }
+
+    console.log(style.dim("═".repeat(50)));
   });
 };
 
