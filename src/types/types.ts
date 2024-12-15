@@ -29,7 +29,7 @@ export interface FileDataWithCoverage extends FileData {
 export interface FunctionBlock {
   name: string;
   lines: string[];
-  isCovered: boolean;
+  isTouched: boolean;
   isReverted: boolean;
   coveredLines: number;
   untouchedLines: number;

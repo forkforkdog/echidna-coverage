@@ -46,10 +46,15 @@ const main = () => {
     if (options.outputFormat === "json") {
       console.log(JSON.stringify(data.coverage, null, 2));
     } else {
-      console.table(data.coverage);
+      if (data.coverage.coveragePercentage === 0 && data.coverage.coveredLines === 0 && !options.verbose) {
+        console.log(style.error(`\n${ICONS.ERROR} File totaly uncovered`));
+        return ;
+      } else {
+        console.table(data.coverage);
+      }
 
       if (options.verbose) {
-        const uncoveredFunctions = data.data.filter((d) => !d.isFullyCovered);
+        let uncoveredFunctions = data.data.filter((d) => !d.isFullyCovered);
         if (uncoveredFunctions.length > 0) {
           console.log(
             style.warning(`\n${ICONS.WARNING} Not fully covered functions:`)

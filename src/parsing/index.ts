@@ -1,6 +1,11 @@
 import path from "path";
 import * as fs from "fs";
-import { FunctionBlock, CoverageStats, FileDataWithCoverage, LineData } from "../types/types";
+import {
+  FunctionBlock,
+  CoverageStats,
+  FileDataWithCoverage,
+  LineData,
+} from "../types/types";
 
 function parseFunctions(lines: string[]): FunctionBlock[] {
   const functions: FunctionBlock[] = [];
@@ -32,7 +37,7 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
       currentFunction = {
         name: functionMatch[1],
         lines: [],
-        isCovered: false,
+        isTouched: false,
         isReverted: false,
         coveredLines: 1,
         untouchedLines: 0,
@@ -77,11 +82,12 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
           null;
         } else if (parts[1] === "*") {
           currentFunction.coveredLines++;
-          currentFunction.isCovered = true;
+          currentFunction.isTouched = true;
         } else if (parts[1] === "r") {
           currentFunction.revertedLines++;
           currentFunction.isReverted = true;
           currentFunction.revertedContent.push(content);
+          currentFunction.isTouched = true;
         } else if (parts[1] === "" && isUntouchedLine(content)) {
           currentFunction.untouchedLines++;
           currentFunction.untouchedContent.push(content);
@@ -161,9 +167,10 @@ function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
     0
   );
 
-  const coveragePercentage = coveredFunctions === 0 && totalFunctions === 0 ? 0 : Number(
-    ((coveredFunctions / totalFunctions) * 100).toFixed(2)
-  );
+  const coveragePercentage =
+    coveredFunctions === 0 && totalFunctions === 0
+      ? 0
+      : Number(((coveredFunctions / totalFunctions) * 100).toFixed(2));
   return {
     totalFunctions: totalFunctions,
     fullyCoveredFunctions: coveredFunctions,
@@ -209,7 +216,7 @@ function processFileContent(fileContent: string): FileDataWithCoverage[] {
     const functionBlocks = parseFunctions(fileDataMap[filePath]);
     const lineData: LineData[] = functionBlocks.map((fb) => ({
       functionName: fb.name,
-      touched: fb.isCovered,
+      touched: fb.isTouched,
       reverted: fb.isReverted,
       isFullyCovered: fb.isTotallyCovered,
       untouchedLines: fb.untouchedLines,
