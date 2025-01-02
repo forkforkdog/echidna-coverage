@@ -4,12 +4,21 @@ import { style, ICONS } from "./style";
 import * as fs from "fs";
 import * as path from "path";
 
+const resolvePathFromCwd = (inputPath: string): string => {
+  if (path.isAbsolute(inputPath)) {
+    return inputPath;
+  }
+  return path.resolve(process.cwd(), inputPath);
+};
+
 const main = () => {
   const options = parseArgs();
 
   let result;
   if (options.echidnaFolder) {
-    const echidnaPath = `${options.echidnaFolder}${options.echidnaFolder.endsWith("/") ? "echidna" : "/echidna"}`
+    const resolvedFolder = resolvePathFromCwd(options.echidnaFolder);
+    const echidnaPath = `${resolvedFolder}${resolvedFolder.endsWith("/") ? "echidna" : "/echidna"}`
+
     const files = fs
       .readdirSync(echidnaPath)
       .filter((file) => file.endsWith(".txt"))
