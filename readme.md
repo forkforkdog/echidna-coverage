@@ -28,7 +28,7 @@ ts-node index.ts -f ./coverage.txt
 With all options:
 
 ```bash
-ts-node index.ts -vv -f ./data/test.txt --format table -t 90 --contract /TestContract.sol
+yarn start -vv -f ./data/test.txt --format table -t 90 --contract /TestContract.sol
 ```
 
 ## Options

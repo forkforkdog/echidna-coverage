@@ -85,8 +85,8 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
           currentFunction.isTouched = true;
         } else if (parts[1] === "r") {
           currentFunction.revertedLines++;
-          currentFunction.isReverted = true;
           currentFunction.revertedContent.push(content);
+          currentFunction.isReverted = true;
           currentFunction.isTouched = true;
         } else if (parts[1] === "" && isUntouchedLine(content)) {
           currentFunction.untouchedLines++;
