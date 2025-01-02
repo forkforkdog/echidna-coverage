@@ -3,13 +3,18 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.ts",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node src/index.ts"
+  "bin": {
+    "echidna-coverage": "./dist/bin.js"
   },
-  "keywords": [],
-  "author": "Simon Busch <simon.busch@live.fr>",
-  "license": "ISC",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "author": "0xsi <simon.busch@live.fr>",
+  "files": ["dist"],
+  "keywords": ["echidna", "coverage", "solidity"],
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.10.1",
     "typescript": "^5.7.2"
