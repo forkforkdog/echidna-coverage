@@ -8,12 +8,18 @@
   },
   "scripts": {
     "start": "ts-node src/index.ts",
-    "build": "tsc",
+    "build": "tsc && chmod +x ./dist/bin.js",
     "prepare": "npm run build"
   },
   "author": "0xsi <simon.busch@live.fr>",
-  "files": ["dist"],
-  "keywords": ["echidna", "coverage", "solidity"],
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "echidna",
+    "coverage",
+    "solidity"
+  ],
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.10.1",
