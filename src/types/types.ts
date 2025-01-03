@@ -18,7 +18,8 @@ export interface CoverageStats {
   coveredLines: number;
   revertedLines: number;
   untouchedLines: number;
-  coveragePercentage: number;
+  functionCoveragePercentage: number;
+  lineCoveragePercentage: number;
   fullyCoveredFunctions: number;
 }
 
@@ -37,6 +38,7 @@ export interface FunctionBlock {
   isTotallyCovered: boolean;
   revertedContent: string[];
   untouchedContent: string[];
+  totalLines: number;
 }
 
 export interface ProgramOptions {

@@ -45,6 +45,7 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
         isTotallyCovered: false,
         revertedContent: [],
         untouchedContent: [],
+        totalLines: 0,
       };
     }
 
@@ -61,7 +62,7 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
 
     if (currentFunction) {
       currentFunction.lines.push(line);
-
+      currentFunction.totalLines++;
       if (content.includes("{")) {
         bracketCount++;
         if (bracketCount === 1) {
@@ -167,18 +168,23 @@ function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
     (acc, f) => acc + f.untouchedLines,
     0
   );
-
-  const coveragePercentage =
+  const functionCoveragePercentage =
     coveredFunctions === 0 && totalFunctions === 0
       ? 0
       : Number(((coveredFunctions / totalFunctions) * 100).toFixed(2));
+
+  const lineCoveragePercentage =
+    coveredLines === 0 && totalUntouchedLines === 0
+      ? 0
+      : Number(((coveredLines / (coveredLines + totalUntouchedLines)) * 100).toFixed(2));
   return {
     totalFunctions: totalFunctions,
     fullyCoveredFunctions: coveredFunctions,
     coveredLines: coveredLines,
     revertedLines: revertedFunctions,
     untouchedLines: totalUntouchedLines,
-    coveragePercentage: coveragePercentage,
+    functionCoveragePercentage: functionCoveragePercentage,
+    lineCoveragePercentage: lineCoveragePercentage,
   };
 }
 

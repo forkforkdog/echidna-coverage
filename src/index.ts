@@ -34,12 +34,11 @@ const main = () => {
     } catch {
       console.log("Error in path")
     }
-    console.log("files: ", files)
+
     if (files.length === 0) {
       console.log("No files found in echidna folder");
       return;
     }
-    console.log("latest: ", files[0].path)
 
     options.filePath = files[0].path;
     result = readFileAndProcess(options.filePath);
@@ -61,7 +60,7 @@ const main = () => {
     if (options.outputFormat === "json") {
       console.log(JSON.stringify(data.coverage, null, 2));
     } else {
-      if (data.coverage.coveragePercentage === 0 && data.coverage.coveredLines === 0 && !options.verbose) {
+      if (data.coverage.lineCoveragePercentage === 0 && data.coverage.coveredLines === 0 && !options.verbose) {
         console.log(style.error(`\n${ICONS.ERROR} File totaly uncovered`));
         return ;
       } else {
@@ -111,10 +110,10 @@ const main = () => {
       }
     }
 
-    if (data.coverage.coveragePercentage < options.threshold) {
+    if (data.coverage.lineCoveragePercentage < options.threshold) {
       console.log(
         style.error(
-          `\n${ICONS.ERROR} Warning: Coverage ${data.coverage.coveragePercentage}% below threshold ${options.threshold}%`
+          `\n${ICONS.ERROR} Warning: Coverage ${data.coverage.lineCoveragePercentage}% below threshold ${options.threshold}%`
         )
       );
     }
