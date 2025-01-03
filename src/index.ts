@@ -13,29 +13,35 @@ const resolvePathFromCwd = (inputPath: string): string => {
 
 const main = () => {
   const options = parseArgs();
-
+  console.log(options)
   let result;
-  if (options.echidnaFolder) {
+  if (options.filePath) {
+    result = readFileAndProcess(options.filePath);
+  } else if (options.echidnaFolder) {
     const resolvedFolder = resolvePathFromCwd(options.echidnaFolder);
     const echidnaPath = `${resolvedFolder}${resolvedFolder.endsWith("/") ? "echidna" : "/echidna"}`
-
-    const files = fs
-      .readdirSync(echidnaPath)
-      .filter((file) => file.endsWith(".txt"))
-      .map((file) => ({
-        name: file,
-        path: path.join(echidnaPath!, file),
-        ctime: fs.statSync(path.join(echidnaPath!, file)).ctime,
-      }))
-      .sort((a, b) => b.ctime.getTime() - a.ctime.getTime());
-
-    if (files.length === 0) {
-      throw new Error("No .txt files found in echidna folder");
+    let files: { name: string; path: string; ctime: Date; }[] = [];
+    try {
+      files = fs
+        .readdirSync(echidnaPath)
+        .filter((file) => file.endsWith(".txt"))
+        .map((file) => ({
+          name: file,
+          path: path.join(echidnaPath!, file),
+          ctime: fs.statSync(path.join(echidnaPath!, file)).ctime,
+        }))
+        .sort((a, b) => b.ctime.getTime() - a.ctime.getTime());
+    } catch {
+      console.log("Error in path")
     }
+    console.log("files: ", files)
+    if (files.length === 0) {
+      console.log("No files found in echidna folder");
+      return;
+    }
+    console.log("latest: ", files[0].path)
 
     options.filePath = files[0].path;
-    result = readFileAndProcess(options.filePath);
-  } else if (options.filePath) {
     result = readFileAndProcess(options.filePath);
   } else {
     throw new Error("No file or folder provided");

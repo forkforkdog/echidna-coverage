@@ -41,7 +41,7 @@ export interface FunctionBlock {
 
 export interface ProgramOptions {
   verbose: boolean;
-  filePath: string;
+  filePath?: string;
   outputFormat: "table" | "json";
   threshold: number;
   help: boolean;

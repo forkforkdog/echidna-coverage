@@ -126,7 +126,8 @@ function isUntouchedLine(content: string): boolean {
     trimmedContent === "{" ||
     trimmedContent === "}" ||
     trimmedContent.includes(") {") ||
-    trimmedContent === ");"
+    trimmedContent === ");" ||
+    trimmedContent.trim() === "} catch {"
   )
     return false;
 
