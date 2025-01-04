@@ -46,7 +46,6 @@ const resolvePathFromCwd = (inputPath) => {
 };
 const main = () => {
     const options = (0, args_1.parseArgs)();
-    console.log(options);
     let result;
     if (options.filePath) {
         result = (0, parsing_1.readFileAndProcess)(options.filePath);
