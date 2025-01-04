@@ -13,7 +13,7 @@ const resolvePathFromCwd = (inputPath: string): string => {
 
 const main = () => {
   const options = parseArgs();
-  console.log(options)
+
   let result;
   if (options.filePath) {
     result = readFileAndProcess(options.filePath);

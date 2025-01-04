@@ -46,26 +46,34 @@ const resolvePathFromCwd = (inputPath) => {
 };
 const main = () => {
     const options = (0, args_1.parseArgs)();
+    console.log(options);
     let result;
-    if (options.echidnaFolder) {
-        const resolvedFolder = resolvePathFromCwd(options.echidnaFolder);
-        const echidnaPath = `${resolvedFolder}${resolvedFolder.endsWith("/") ? "echidna" : "/echidna"}`;
-        const files = fs
-            .readdirSync(echidnaPath)
-            .filter((file) => file.endsWith(".txt"))
-            .map((file) => ({
-            name: file,
-            path: path.join(echidnaPath, file),
-            ctime: fs.statSync(path.join(echidnaPath, file)).ctime,
-        }))
-            .sort((a, b) => b.ctime.getTime() - a.ctime.getTime());
-        if (files.length === 0) {
-            throw new Error("No .txt files found in echidna folder");
-        }
-        options.filePath = files[0].path;
+    if (options.filePath) {
         result = (0, parsing_1.readFileAndProcess)(options.filePath);
     }
-    else if (options.filePath) {
+    else if (options.echidnaFolder) {
+        const resolvedFolder = resolvePathFromCwd(options.echidnaFolder);
+        const echidnaPath = `${resolvedFolder}${resolvedFolder.endsWith("/") ? "echidna" : "/echidna"}`;
+        let files = [];
+        try {
+            files = fs
+                .readdirSync(echidnaPath)
+                .filter((file) => file.endsWith(".txt"))
+                .map((file) => ({
+                name: file,
+                path: path.join(echidnaPath, file),
+                ctime: fs.statSync(path.join(echidnaPath, file)).ctime,
+            }))
+                .sort((a, b) => b.ctime.getTime() - a.ctime.getTime());
+        }
+        catch (_a) {
+            console.log("Error in path");
+        }
+        if (files.length === 0) {
+            console.log("No files found in echidna folder");
+            return;
+        }
+        options.filePath = files[0].path;
         result = (0, parsing_1.readFileAndProcess)(options.filePath);
     }
     else {
@@ -83,7 +91,7 @@ const main = () => {
             console.log(JSON.stringify(data.coverage, null, 2));
         }
         else {
-            if (data.coverage.coveragePercentage === 0 && data.coverage.coveredLines === 0 && !options.verbose) {
+            if (data.coverage.lineCoveragePercentage === 0 && data.coverage.coveredLines === 0 && !options.verbose) {
                 console.log(style_1.style.error(`\n${style_1.ICONS.ERROR} File totaly uncovered`));
                 return;
             }
@@ -123,8 +131,8 @@ const main = () => {
                 }
             }
         }
-        if (data.coverage.coveragePercentage < options.threshold) {
-            console.log(style_1.style.error(`\n${style_1.ICONS.ERROR} Warning: Coverage ${data.coverage.coveragePercentage}% below threshold ${options.threshold}%`));
+        if (data.coverage.lineCoveragePercentage < options.threshold) {
+            console.log(style_1.style.error(`\n${style_1.ICONS.ERROR} Warning: Coverage ${data.coverage.lineCoveragePercentage}% below threshold ${options.threshold}%`));
         }
         console.log(style_1.style.dim("═".repeat(50)));
     });

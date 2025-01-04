@@ -71,6 +71,7 @@ function parseFunctions(lines) {
                 isTotallyCovered: false,
                 revertedContent: [],
                 untouchedContent: [],
+                totalLines: 0,
             };
         }
         // Check lines between function declaration and opening brace for view/external
@@ -83,6 +84,7 @@ function parseFunctions(lines) {
         }
         if (currentFunction) {
             currentFunction.lines.push(line);
+            currentFunction.totalLines++;
             if (content.includes("{")) {
                 bracketCount++;
                 if (bracketCount === 1) {
@@ -143,7 +145,8 @@ function isUntouchedLine(content) {
         trimmedContent === "{" ||
         trimmedContent === "}" ||
         trimmedContent.includes(") {") ||
-        trimmedContent === ");")
+        trimmedContent === ");" ||
+        trimmedContent.trim() === "} catch {")
         return false;
     // Skip modifier keywords
     if (trimmedContent.includes("public") ||
@@ -171,16 +174,20 @@ function calculateCoverage(functions) {
     const coveredLines = functions.reduce((acc, f) => acc + f.coveredLines, 0);
     const revertedFunctions = functions.filter((f) => f.isReverted).length;
     const totalUntouchedLines = functions.reduce((acc, f) => acc + f.untouchedLines, 0);
-    const coveragePercentage = coveredFunctions === 0 && totalFunctions === 0
+    const functionCoveragePercentage = coveredFunctions === 0 && totalFunctions === 0
         ? 0
         : Number(((coveredFunctions / totalFunctions) * 100).toFixed(2));
+    const lineCoveragePercentage = coveredLines === 0 && totalUntouchedLines === 0
+        ? 0
+        : Number(((coveredLines / (coveredLines + totalUntouchedLines)) * 100).toFixed(2));
     return {
         totalFunctions: totalFunctions,
         fullyCoveredFunctions: coveredFunctions,
         coveredLines: coveredLines,
         revertedLines: revertedFunctions,
         untouchedLines: totalUntouchedLines,
-        coveragePercentage: coveragePercentage,
+        functionCoveragePercentage: functionCoveragePercentage,
+        lineCoveragePercentage: lineCoveragePercentage,
     };
 }
 function processFileContent(fileContent) {
