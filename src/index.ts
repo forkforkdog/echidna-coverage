@@ -1,6 +1,7 @@
 import { parseArgs } from "./args";
 import { readFileAndProcess } from "./parsing";
 import { style, ICONS } from "./style";
+import { checkLatestVersion } from "./utils";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -11,8 +12,11 @@ const resolvePathFromCwd = (inputPath: string): string => {
   return path.resolve(process.cwd(), inputPath);
 };
 
-const main = () => {
+const main = async () => {
   const options = parseArgs();
+  const version = require("../package.json").version;
+  console.log(`Running Echidna coverage version ${version}`);
+  await checkLatestVersion(version);
 
   let result;
   if (options.filePath) {
@@ -122,4 +126,7 @@ const main = () => {
   });
 };
 
-main();
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

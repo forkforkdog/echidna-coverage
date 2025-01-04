@@ -32,10 +32,20 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const args_1 = require("./args");
 const parsing_1 = require("./parsing");
 const style_1 = require("./style");
+const utils_1 = require("./utils");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const resolvePathFromCwd = (inputPath) => {
@@ -44,8 +54,11 @@ const resolvePathFromCwd = (inputPath) => {
     }
     return path.resolve(process.cwd(), inputPath);
 };
-const main = () => {
+const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const options = (0, args_1.parseArgs)();
+    const version = require("../package.json").version;
+    console.log(`Running Echidna coverage version ${version}`);
+    yield (0, utils_1.checkLatestVersion)(version);
     let result;
     if (options.filePath) {
         result = (0, parsing_1.readFileAndProcess)(options.filePath);
@@ -135,5 +148,8 @@ const main = () => {
         }
         console.log(style_1.style.dim("═".repeat(50)));
     });
-};
-main();
+});
+main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+});
