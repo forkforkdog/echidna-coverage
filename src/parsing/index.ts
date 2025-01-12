@@ -78,7 +78,23 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
 
       if (functionBodyStarted) {
         const trimmedContent = content.trim();
-        if (trimmedContent === "}") {
+        if (trimmedContent === "assembly {") {
+          const nextParts = lines[index + 1]
+            .split("|")
+            .map((part) => part.trim());
+          if (nextParts[1] === "*") {
+            currentFunction.coveredLines++;
+            currentFunction.isTouched = true;
+          } else if (nextParts[1] === "r") {
+            currentFunction.revertedLines++;
+            currentFunction.revertedContent.push(content);
+            currentFunction.isReverted = true;
+            currentFunction.isTouched = true;
+          } else if (nextParts[1] === "" && isUntouchedLine(content)) {
+            currentFunction.untouchedLines++;
+            currentFunction.untouchedContent.push(content);
+          }
+        } else if (trimmedContent === "}") {
           // Don't count closing brace
           null;
         } else if (parts[1] === "*") {
@@ -90,8 +106,21 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
           currentFunction.isReverted = true;
           currentFunction.isTouched = true;
         } else if (parts[1] === "" && isUntouchedLine(content)) {
-          currentFunction.untouchedLines++;
-          currentFunction.untouchedContent.push(content);
+          if (
+            lines[index - 1]
+              .split("|")
+              .map((part) => part.trim())[2]
+              .endsWith(",") ||
+            content.startsWith('"') ||
+            lines[index - 1].split("|").map((part) => part.trim())[1] === "*" &&
+            lines[index + 1].split("|").map((part) => part.trim())[1] === "*"
+          ) {
+            currentFunction.coveredLines++;
+            currentFunction.isTouched = true;
+          } else {
+            currentFunction.untouchedLines++;
+            currentFunction.untouchedContent.push(content);
+          }
         }
       }
 
@@ -176,7 +205,11 @@ function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
   const lineCoveragePercentage =
     coveredLines === 0 && totalUntouchedLines === 0
       ? 0
-      : Number(((coveredLines / (coveredLines + totalUntouchedLines)) * 100).toFixed(2));
+      : Number(
+          ((coveredLines / (coveredLines + totalUntouchedLines)) * 100).toFixed(
+            2
+          )
+        );
   return {
     totalFunctions: totalFunctions,
     fullyCoveredFunctions: coveredFunctions,
