@@ -64,7 +64,7 @@ echidna-coverage -vv --format table -t 90 --contract /TestContract.sol
 ══════════════════════════════════════════════════
 ```
 
-### Using normal verbose mode (-v)
+### Using verbose mode (-v)
 
 ```bash
 ══════════════════════════════════════════════════
@@ -95,7 +95,7 @@ echidna-coverage -vv --format table -t 90 --contract /TestContract.sol
 ══════════════════════════════════════════════════
 ```
 
-### Using normal very-verbose mode (-vv)
+### Using very-verbose mode (-vv)
 
 ```bash
 ══════════════════════════════════════════════════
