@@ -86,8 +86,8 @@ echidna-coverage -vv --format table -t 90 --contract /TestContract.sol
 ┌─────────┬────────────────────────────────────────────┬─────────┬──────────┬────────────────┐
 │ (index) │                functionName                │ touched │ reverted │ untouchedLines │
 ├─────────┼────────────────────────────────────────────┼─────────┼──────────┼────────────────┤
-│    0    │       '_getInfraredCollVaultStorage'       │  true   │  false   │       1        │
-│    1    │ '__InfraredCollateralVault_init_unchained' │  true   │  false   │       1        │
+│    0    │                 '_getData_'                │  true   │  false   │       1        │
+│    1    │                 '_init_'                   │  true   │  false   │       1        │
 │    2    │             '_harvestRewards'              │  true   │  false   │       1        │
 │    3    │               'totalAssets'                │  true   │  false   │       2        │
 │    4    │            '_autoCompoundHook'             │  false  │  false   │       1        │
@@ -117,18 +117,18 @@ echidna-coverage -vv --format table -t 90 --contract /TestContract.sol
 ┌─────────┬────────────────────────────────────────────┬─────────┬──────────┬────────────────┐
 │ (index) │                functionName                │ touched │ reverted │ untouchedLines │
 ├─────────┼────────────────────────────────────────────┼─────────┼──────────┼────────────────┤
-│    0    │       '_getInfraredCollVaultStorage'       │  true   │  false   │       1        │
-│    1    │ '__InfraredCollateralVault_init_unchained' │  true   │  false   │       1        │
+│    0    │                 '_getData_'                │  true   │  false   │       1        │
+│    1    │                 '_init_'                   │  true   │  false   │       1        │
 │    2    │             '_harvestRewards'              │  true   │  false   │       1        │
 │    3    │               'totalAssets'                │  true   │  false   │       2        │
 │    4    │            '_autoCompoundHook'             │  false  │  false   │       1        │
 └─────────┴────────────────────────────────────────────┴─────────┴──────────┴────────────────┘
 
-Function: _getInfraredCollVaultStorage
+Function: _getData_
 ❌ Untouched lines:
 assembly {
 
-Function: __InfraredCollateralVault_init_unchained
+Function: _init_
 ❌ Untouched lines:
 revert("CollVault: 0 address");
 
