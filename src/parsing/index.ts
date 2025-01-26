@@ -157,11 +157,13 @@ function isUntouchedLine(content: string): boolean {
     trimmedContent === "}" ||
     trimmedContent.includes(") {") ||
     trimmedContent === ");" ||
-    trimmedContent.trim() === "} catch {"
+    trimmedContent.trim() === "} catch {" ||
+    trimmedContent.trim() === "});" ||
+    trimmedContent.startsWith("console")
   )
     return false;
 
-  // Skip modifier keywords
+  // Skip visibility keywords
   if (
     trimmedContent.includes("public") ||
     trimmedContent.includes("private") ||
