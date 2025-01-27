@@ -54,7 +54,7 @@ echidna-coverage -vv --format table -t 90 --contract /TestContract.sol
 97.14 %
 ```
 
-### Using normal mode
+### Using normal mode ( default )
 
 ```bash
 ══════════════════════════════════════════════════
