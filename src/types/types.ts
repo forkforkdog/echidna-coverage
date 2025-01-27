@@ -50,4 +50,5 @@ export interface ProgramOptions {
   contract?: string;
   veryVerbose: boolean;
   echidnaFolder?: string;
+  condensedMode: boolean;
 }

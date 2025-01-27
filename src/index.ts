@@ -1,3 +1,4 @@
+import { config } from "process";
 import { parseArgs } from "./args";
 import { readFileAndProcess } from "./parsing";
 import { style, ICONS } from "./style";
@@ -34,9 +35,7 @@ const main = async () => {
       }`;
       if (!fs.existsSync(corpusDirPath)) {
         console.log(
-          style.error(
-            `${ICONS.ERROR} No echidna or corpusDir folder found in`
-          )
+          style.error(`${ICONS.ERROR} No echidna or corpusDir folder found in`)
         );
         return;
       }
@@ -74,6 +73,7 @@ const main = async () => {
       file.path.toLowerCase().includes(options.contract!.toLowerCase())
     );
   }
+
   result.forEach((data) => {
     console.log("\n");
     console.log(style.dim("═".repeat(50)));
@@ -83,6 +83,10 @@ const main = async () => {
     if (options.outputFormat === "json") {
       console.log(JSON.stringify(data.coverage, null, 2));
     } else {
+      if (options.condensedMode) {
+        console.log(`${data.coverage.lineCoveragePercentage} %`)
+        return
+      }
       if (
         data.coverage.lineCoveragePercentage === 0 &&
         data.coverage.coveredLines === 0 &&
@@ -93,6 +97,7 @@ const main = async () => {
       } else {
         console.table(data.coverage);
       }
+
 
       if (options.verbose) {
         let uncoveredFunctions = data.data.filter((d) => !d.isFullyCovered);
