@@ -7,12 +7,12 @@ import {
   LineData,
 } from "../types/types";
 
-function parseFunctions(lines: string[]): FunctionBlock[] {
+function parseFunctions(lines: string[], allFunctions: boolean): FunctionBlock[] {
   const functions: FunctionBlock[] = [];
   let currentFunction: FunctionBlock | null = null;
   let bracketCount = 0;
   let functionBodyStarted = false;
-  let isViewExternal = false;
+  let isViewPure = false;
 
   lines.forEach((line, index) => {
     const parts = line.split("|").map((part) => part.trim());
@@ -27,12 +27,7 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
     if (functionMatch) {
       bracketCount = 0;
       functionBodyStarted = false;
-      isViewExternal = false;
-
-      // Check if the function declaration line contains both view and external
-      if (content.includes("external") && content.includes("view")) {
-        isViewExternal = true;
-      }
+      isViewPure = checkViewOrPureFunction(content);
 
       currentFunction = {
         name: functionMatch[1],
@@ -46,17 +41,14 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
         revertedContent: [],
         untouchedContent: [],
         totalLines: 0,
+        isViewPure: isViewPure,
       };
     }
 
     // Check lines between function declaration and opening brace for view/external
     if (currentFunction && !functionBodyStarted) {
-      if (
-        content.trim() === "external" ||
-        content.trim() === "view" ||
-        (content.includes("external") && content.includes("view"))
-      ) {
-        isViewExternal = true;
+      if (checkViewOrPureFunction(content)) {
+        currentFunction.isViewPure = checkViewOrPureFunction(content);
       }
     }
 
@@ -67,12 +59,6 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
         bracketCount++;
         if (bracketCount === 1) {
           functionBodyStarted = true;
-          // If we found both view and external, discard this function
-          if (isViewExternal) {
-            currentFunction = null;
-            functionBodyStarted= false;
-            return;
-          }
           return;
         }
       }
@@ -113,8 +99,9 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
               .map((part) => part.trim())[2]
               .endsWith(",") ||
             content.startsWith('"') ||
-            lines[index - 1].split("|").map((part) => part.trim())[1] === "*" &&
-            lines[index + 1].split("|").map((part) => part.trim())[1] === "*"
+            (lines[index - 1].split("|").map((part) => part.trim())[1] ===
+              "*" &&
+              lines[index + 1].split("|").map((part) => part.trim())[1] === "*")
           ) {
             currentFunction.coveredLines++;
             currentFunction.isTouched = true;
@@ -127,7 +114,7 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
 
       if (content.includes("}")) {
         bracketCount--;
-        if (bracketCount === 0 && currentFunction && !isViewExternal) {
+        if (bracketCount === 0 && currentFunction) {
           functions.push(currentFunction);
           currentFunction = null;
           functionBodyStarted = false;
@@ -142,7 +129,11 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
     }
   });
 
-  return functions;
+  if (allFunctions) {
+    return functions;
+  } else {
+    return functions.filter((f) => !f.isViewPure);
+  }
 }
 
 function isUntouchedLine(content: string): boolean {
@@ -224,7 +215,7 @@ function calculateCoverage(functions: FunctionBlock[]): CoverageStats {
   };
 }
 
-function processFileContent(fileContent: string): FileDataWithCoverage[] {
+function processFileContent(fileContent: string, allFunctions: boolean): FileDataWithCoverage[] {
   const lines = fileContent.split("\n");
   const fileDataMap: { [key: string]: string[] } = {};
   let currentPath = "";
@@ -256,7 +247,7 @@ function processFileContent(fileContent: string): FileDataWithCoverage[] {
   });
 
   return Object.keys(fileDataMap).map((filePath) => {
-    const functionBlocks = parseFunctions(fileDataMap[filePath]);
+    const functionBlocks = parseFunctions(fileDataMap[filePath], allFunctions);
     const lineData: LineData[] = functionBlocks.map((fb) => ({
       functionName: fb.name,
       touched: fb.isTouched,
@@ -274,7 +265,22 @@ function processFileContent(fileContent: string): FileDataWithCoverage[] {
   });
 }
 
-export function readFileAndProcess(filePath: string): FileDataWithCoverage[] {
+export function readFileAndProcess(filePath: string, allFunctions: boolean): FileDataWithCoverage[] {
   const fileContent = fs.readFileSync(filePath, "utf-8");
-  return processFileContent(fileContent);
+  return processFileContent(fileContent, allFunctions);
 }
+
+const checkViewOrPureFunction = (content: string): boolean => {
+  const words = content
+    .toLowerCase()
+    .split(/[\s(),]+/)
+    .map((word) => word.trim())
+    .filter((word) => word);
+
+  // Check for view/pure modifiers
+  if (words.includes("view") || words.includes("pure")) {
+    return true;
+  } else {
+    return false;
+  }
+};

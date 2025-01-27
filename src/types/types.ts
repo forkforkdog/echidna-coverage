@@ -39,6 +39,7 @@ export interface FunctionBlock {
   revertedContent: string[];
   untouchedContent: string[];
   totalLines: number;
+  isViewPure: boolean;
 }
 
 export interface ProgramOptions {
@@ -51,4 +52,5 @@ export interface ProgramOptions {
   veryVerbose: boolean;
   echidnaFolder?: string;
   condensedMode: boolean;
+  allFunctions: boolean;
 }
