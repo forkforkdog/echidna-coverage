@@ -36,15 +36,25 @@ echidna-coverage -vv --format table -t 90 --contract /TestContract.sol
 - -v, --verbose: Show detailed output including uncovered functions
 - -vv, --very-verbose: verbose mode + add logs of untouched lines and reverted lines
 - -f, --file `<path>`: Path to a specfic coverage file.txt
-- -ef, --echidna-folder `<path>`: path to the root of your directory containing the `echidna` folder. Defaults to "."
+- -ef, --echidna-folder `<path>`: path to the root of your directory containing the `echidna` folder. Defaults to ".". Accept `echidna` or `corpusDir` as default
 - --format `<type>`: Output format - 'table' or 'json' (default: table)
 - -t, --threshold `<n>`: Coverage threshold percentage (default: 70)
 - -h, --help: Show help message
 - -c, --contract: filter by contract name matching
+- -cm, --condensed-mode: condensed mode only returning the % covered per file
 
 ## Output Example
 
-### Using normal mode
+### Using condensed mode
+
+```bash
+══════════════════════════════════════════════════
+📄 File: vaults/Test.sol
+══════════════════════════════════════════════════
+97.14 %
+```
+
+### Using normal mode ( default )
 
 ```bash
 ══════════════════════════════════════════════════

@@ -9,4 +9,5 @@ export const DEFAULT_CONFIG: ProgramOptions = {
   help: false,
   contract: undefined,
   echidnaFolder: ".",
+  condensedMode: false,
 };
