@@ -42,7 +42,7 @@ echidna-coverage -vv --format table -t 90 --contract /TestContract.sol
 - -h, --help: Show help message
 - -c, --contract: filter by contract name matching. This accepts either a contract name or an array of contracts such as: `-c "[contractA.sol, contractB.sol]"` or `-c contractA.sol`
 - -cm, --condensed-mode: condensed mode only returning the % covered per file
-- -af, -all-function: show all functions coverage, default to trimm off view and pure functions
+- -af, -all-function: show all functions coverage, default to trimm off view and pure functions. Default false
 
 ## Output Example
 
