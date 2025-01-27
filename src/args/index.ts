@@ -16,7 +16,7 @@ Options:
   -ef, --echidna-folder <path>      Path to echidna folder
   --format <type>        Output format: 'table' or 'json' (default: table)
   -t, --threshold <n>    Coverage threshold percentage (default: 70)
-  -c, --contract <name>      Contract name
+  -c, --contract <name>      Contract name to filter, accept array of contracts as well
   -cm, --condensed-mode  Condensed mode
   `);
   process.exit(0);

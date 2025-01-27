@@ -5,6 +5,7 @@ import { style, ICONS } from "./style";
 import { checkLatestVersion } from "./utils";
 import * as fs from "fs";
 import * as path from "path";
+import { FileDataWithCoverage } from "./types/types";
 
 const resolvePathFromCwd = (inputPath: string): string => {
   if (path.isAbsolute(inputPath)) {
@@ -19,7 +20,7 @@ const main = async () => {
   console.log(`Running Echidna coverage version ${version}`);
   await checkLatestVersion(version);
 
-  let result;
+  let result: FileDataWithCoverage[] = [];
   if (options.filePath) {
     result = readFileAndProcess(options.filePath);
   } else if (options.echidnaFolder) {
@@ -69,9 +70,23 @@ const main = async () => {
   }
 
   if (options.contract) {
-    result = result.filter((file) =>
-      file.path.toLowerCase().includes(options.contract!.toLowerCase())
-    );
+    if (options.contract.includes("[") && options.contract.includes("]")) {
+      let temp: FileDataWithCoverage[] = [];
+      const contractArray = options.contract.replace("[", "").replace("]", "").split(",");
+
+      contractArray.map((contract) => {
+        const found = result.filter((file) =>
+          file.path.toLowerCase().includes(contract.trim().toLowerCase())
+        );
+        temp.push(...found);
+      });
+
+      result = temp;
+    } else {
+      result = result.filter((file) =>
+        file.path.toLowerCase().includes(options.contract!.toLowerCase())
+      );
+    }
   }
 
   result.forEach((data) => {

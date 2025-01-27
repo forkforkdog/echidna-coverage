@@ -40,7 +40,7 @@ echidna-coverage -vv --format table -t 90 --contract /TestContract.sol
 - --format `<type>`: Output format - 'table' or 'json' (default: table)
 - -t, --threshold `<n>`: Coverage threshold percentage (default: 70)
 - -h, --help: Show help message
-- -c, --contract: filter by contract name matching
+- -c, --contract: filter by contract name matching. This accepts either a contract name or an array of contracts such as: `-c "[contractA.sol, contractB.sol]"` or `-c contractA.sol`
 - -cm, --condensed-mode: condensed mode only returning the % covered per file
 
 ## Output Example
