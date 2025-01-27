@@ -70,6 +70,7 @@ function parseFunctions(lines: string[]): FunctionBlock[] {
           // If we found both view and external, discard this function
           if (isViewExternal) {
             currentFunction = null;
+            functionBodyStarted= false;
             return;
           }
           return;

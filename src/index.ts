@@ -23,8 +23,27 @@ const main = async () => {
     result = readFileAndProcess(options.filePath);
   } else if (options.echidnaFolder) {
     const resolvedFolder = resolvePathFromCwd(options.echidnaFolder);
-    const echidnaPath = `${resolvedFolder}${resolvedFolder.endsWith("/") ? "echidna" : "/echidna"}`
-    let files: { name: string; path: string; ctime: Date; }[] = [];
+    let echidnaPath = `${resolvedFolder}${
+      resolvedFolder.endsWith("/") ? "echidna" : "/echidna"
+    }`;
+
+    // Try echidna folder first, then corpusDir
+    if (!fs.existsSync(echidnaPath)) {
+      const corpusDirPath = `${resolvedFolder}${
+        resolvedFolder.endsWith("/") ? "corpusDir" : "/corpusDir"
+      }`;
+      if (!fs.existsSync(corpusDirPath)) {
+        console.log(
+          style.error(
+            `${ICONS.ERROR} No echidna or corpusDir folder found in`
+          )
+        );
+        return;
+      }
+      echidnaPath = corpusDirPath;
+    }
+
+    let files: { name: string; path: string; ctime: Date }[] = [];
     try {
       files = fs
         .readdirSync(echidnaPath)
@@ -36,7 +55,7 @@ const main = async () => {
         }))
         .sort((a, b) => b.ctime.getTime() - a.ctime.getTime());
     } catch {
-      console.log("Error in path")
+      console.log("Error in path");
     }
 
     if (files.length === 0) {
@@ -64,9 +83,13 @@ const main = async () => {
     if (options.outputFormat === "json") {
       console.log(JSON.stringify(data.coverage, null, 2));
     } else {
-      if (data.coverage.lineCoveragePercentage === 0 && data.coverage.coveredLines === 0 && !options.verbose) {
+      if (
+        data.coverage.lineCoveragePercentage === 0 &&
+        data.coverage.coveredLines === 0 &&
+        !options.verbose
+      ) {
         console.log(style.error(`\n${ICONS.ERROR} File totaly uncovered`));
-        return ;
+        return;
       } else {
         console.table(data.coverage);
       }
@@ -127,6 +150,6 @@ const main = async () => {
 };
 
 main().catch((error) => {
-  console.error('Fatal error:', error);
+  console.error("Fatal error:", error);
   process.exit(1);
 });
