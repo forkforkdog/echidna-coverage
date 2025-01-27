@@ -18,6 +18,7 @@ Options:
   -t, --threshold <n>    Coverage threshold percentage (default: 70)
   -c, --contract <name>      Contract name to filter, accept array of contracts as well
   -cm, --condensed-mode  Condensed mode
+  -af, --all-functions    Show all functions ( default to hide pure and view functions)
   `);
   process.exit(0);
 }
@@ -32,6 +33,10 @@ export function parseArgs(): ProgramOptions {
         case "--help":
         case "-h":
           options.help = true;
+          break;
+        case "-af":
+        case "--all-functions":
+          options.allFunctions = true;
           break;
         case "-cm":
         case "--condensed-mode":

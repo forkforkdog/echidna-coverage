@@ -22,7 +22,7 @@ const main = async () => {
 
   let result: FileDataWithCoverage[] = [];
   if (options.filePath) {
-    result = readFileAndProcess(options.filePath);
+    result = readFileAndProcess(options.filePath, options.allFunctions);
   } else if (options.echidnaFolder) {
     const resolvedFolder = resolvePathFromCwd(options.echidnaFolder);
     let echidnaPath = `${resolvedFolder}${
@@ -64,7 +64,7 @@ const main = async () => {
     }
 
     options.filePath = files[0].path;
-    result = readFileAndProcess(options.filePath);
+    result = readFileAndProcess(options.filePath, options.allFunctions);
   } else {
     throw new Error("No file or folder provided");
   }
