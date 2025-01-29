@@ -13,6 +13,7 @@ function parseFunctions(lines: string[], allFunctions: boolean): FunctionBlock[]
   let bracketCount = 0;
   let functionBodyStarted = false;
   let isViewPure = false;
+  let commentTracker = false;
 
   lines.forEach((line, index) => {
     const parts = line.split("|").map((part) => part.trim());
@@ -53,6 +54,18 @@ function parseFunctions(lines: string[], allFunctions: boolean): FunctionBlock[]
     }
 
     if (currentFunction) {
+      const trimmedContent = content.trim();
+
+      if (trimmedContent.includes("/*")) {
+        commentTracker = true;
+      }
+      if (trimmedContent.includes("*/")) {
+        commentTracker = false;
+      }
+      if (commentTracker) {
+        return;
+      }
+
       currentFunction.lines.push(line);
       currentFunction.totalLines++;
       if (content.includes("{")) {
@@ -64,7 +77,6 @@ function parseFunctions(lines: string[], allFunctions: boolean): FunctionBlock[]
       }
 
       if (functionBodyStarted) {
-        const trimmedContent = content.trim();
         if (trimmedContent === "assembly {") {
           const nextParts = lines[index + 1]
             .split("|")
