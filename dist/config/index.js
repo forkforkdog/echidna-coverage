@@ -10,4 +10,6 @@ exports.DEFAULT_CONFIG = {
     help: false,
     contract: undefined,
     echidnaFolder: ".",
+    condensedMode: false,
+    allFunctions: false,
 };

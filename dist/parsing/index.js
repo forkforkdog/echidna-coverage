@@ -39,12 +39,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.readFileAndProcess = readFileAndProcess;
 const path_1 = __importDefault(require("path"));
 const fs = __importStar(require("fs"));
-function parseFunctions(lines) {
+function parseFunctions(lines, allFunctions) {
     const functions = [];
     let currentFunction = null;
     let bracketCount = 0;
     let functionBodyStarted = false;
-    let isViewExternal = false;
+    let isViewPure = false;
+    let commentTracker = false;
     lines.forEach((line, index) => {
         const parts = line.split("|").map((part) => part.trim());
         if (parts.length < 3)
@@ -55,11 +56,7 @@ function parseFunctions(lines) {
         if (functionMatch) {
             bracketCount = 0;
             functionBodyStarted = false;
-            isViewExternal = false;
-            // Check if the function declaration line contains both view and external
-            if (content.includes("external") && content.includes("view")) {
-                isViewExternal = true;
-            }
+            isViewPure = checkViewOrPureFunction(content);
             currentFunction = {
                 name: functionMatch[1],
                 lines: [],
@@ -72,34 +69,56 @@ function parseFunctions(lines) {
                 revertedContent: [],
                 untouchedContent: [],
                 totalLines: 0,
+                isViewPure: isViewPure,
             };
         }
         // Check lines between function declaration and opening brace for view/external
         if (currentFunction && !functionBodyStarted) {
-            if (content.trim() === "external" ||
-                content.trim() === "view" ||
-                (content.includes("external") && content.includes("view"))) {
-                isViewExternal = true;
+            if (checkViewOrPureFunction(content)) {
+                currentFunction.isViewPure = checkViewOrPureFunction(content);
             }
         }
         if (currentFunction) {
+            const trimmedContent = content.trim();
+            if (trimmedContent.includes("/*")) {
+                commentTracker = true;
+            }
+            if (trimmedContent.includes("*/")) {
+                commentTracker = false;
+            }
+            if (commentTracker) {
+                return;
+            }
             currentFunction.lines.push(line);
             currentFunction.totalLines++;
             if (content.includes("{")) {
                 bracketCount++;
                 if (bracketCount === 1) {
                     functionBodyStarted = true;
-                    // If we found both view and external, discard this function
-                    if (isViewExternal) {
-                        currentFunction = null;
-                        return;
-                    }
                     return;
                 }
             }
             if (functionBodyStarted) {
-                const trimmedContent = content.trim();
-                if (trimmedContent === "}") {
+                if (trimmedContent === "assembly {") {
+                    const nextParts = lines[index + 1]
+                        .split("|")
+                        .map((part) => part.trim());
+                    if (nextParts[1] === "*") {
+                        currentFunction.coveredLines++;
+                        currentFunction.isTouched = true;
+                    }
+                    else if (nextParts[1] === "r") {
+                        currentFunction.revertedLines++;
+                        currentFunction.revertedContent.push(content);
+                        currentFunction.isReverted = true;
+                        currentFunction.isTouched = true;
+                    }
+                    else if (nextParts[1] === "" && isUntouchedLine(content)) {
+                        currentFunction.untouchedLines++;
+                        currentFunction.untouchedContent.push(content);
+                    }
+                }
+                else if (trimmedContent === "}") {
                     // Don't count closing brace
                     null;
                 }
@@ -114,13 +133,26 @@ function parseFunctions(lines) {
                     currentFunction.isTouched = true;
                 }
                 else if (parts[1] === "" && isUntouchedLine(content)) {
-                    currentFunction.untouchedLines++;
-                    currentFunction.untouchedContent.push(content);
+                    if (lines[index - 1]
+                        .split("|")
+                        .map((part) => part.trim())[2]
+                        .endsWith(",") ||
+                        content.startsWith('"') ||
+                        (lines[index - 1].split("|").map((part) => part.trim())[1] ===
+                            "*" &&
+                            lines[index + 1].split("|").map((part) => part.trim())[1] === "*")) {
+                        currentFunction.coveredLines++;
+                        currentFunction.isTouched = true;
+                    }
+                    else {
+                        currentFunction.untouchedLines++;
+                        currentFunction.untouchedContent.push(content);
+                    }
                 }
             }
             if (content.includes("}")) {
                 bracketCount--;
-                if (bracketCount === 0 && currentFunction && !isViewExternal) {
+                if (bracketCount === 0 && currentFunction) {
                     functions.push(currentFunction);
                     currentFunction = null;
                     functionBodyStarted = false;
@@ -133,7 +165,12 @@ function parseFunctions(lines) {
             f.isTotallyCovered = true;
         }
     });
-    return functions;
+    if (allFunctions) {
+        return functions;
+    }
+    else {
+        return functions.filter((f) => !f.isViewPure);
+    }
 }
 function isUntouchedLine(content) {
     const trimmedContent = content.trim();
@@ -146,9 +183,11 @@ function isUntouchedLine(content) {
         trimmedContent === "}" ||
         trimmedContent.includes(") {") ||
         trimmedContent === ");" ||
-        trimmedContent.trim() === "} catch {")
+        trimmedContent.trim() === "} catch {" ||
+        trimmedContent.trim() === "});" ||
+        trimmedContent.startsWith("console"))
         return false;
-    // Skip modifier keywords
+    // Skip visibility keywords
     if (trimmedContent.includes("public") ||
         trimmedContent.includes("private") ||
         trimmedContent.includes("external") ||
@@ -190,7 +229,7 @@ function calculateCoverage(functions) {
         lineCoveragePercentage: lineCoveragePercentage,
     };
 }
-function processFileContent(fileContent) {
+function processFileContent(fileContent, allFunctions) {
     const lines = fileContent.split("\n");
     const fileDataMap = {};
     let currentPath = "";
@@ -216,7 +255,7 @@ function processFileContent(fileContent) {
         }
     });
     return Object.keys(fileDataMap).map((filePath) => {
-        const functionBlocks = parseFunctions(fileDataMap[filePath]);
+        const functionBlocks = parseFunctions(fileDataMap[filePath], allFunctions);
         const lineData = functionBlocks.map((fb) => ({
             functionName: fb.name,
             touched: fb.isTouched,
@@ -233,7 +272,21 @@ function processFileContent(fileContent) {
         };
     });
 }
-function readFileAndProcess(filePath) {
+function readFileAndProcess(filePath, allFunctions) {
     const fileContent = fs.readFileSync(filePath, "utf-8");
-    return processFileContent(fileContent);
+    return processFileContent(fileContent, allFunctions);
 }
+const checkViewOrPureFunction = (content) => {
+    const words = content
+        .toLowerCase()
+        .split(/[\s(),]+/)
+        .map((word) => word.trim())
+        .filter((word) => word);
+    // Check for view/pure modifiers
+    if (words.includes("view") || words.includes("pure")) {
+        return true;
+    }
+    else {
+        return false;
+    }
+};

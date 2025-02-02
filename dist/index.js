@@ -59,13 +59,22 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const version = require("../package.json").version;
     console.log(`Running Echidna coverage version ${version}`);
     yield (0, utils_1.checkLatestVersion)(version);
-    let result;
+    let result = [];
     if (options.filePath) {
-        result = (0, parsing_1.readFileAndProcess)(options.filePath);
+        result = (0, parsing_1.readFileAndProcess)(options.filePath, options.allFunctions);
     }
     else if (options.echidnaFolder) {
         const resolvedFolder = resolvePathFromCwd(options.echidnaFolder);
-        const echidnaPath = `${resolvedFolder}${resolvedFolder.endsWith("/") ? "echidna" : "/echidna"}`;
+        let echidnaPath = `${resolvedFolder}${resolvedFolder.endsWith("/") ? "echidna" : "/echidna"}`;
+        // Try echidna folder first, then corpusDir
+        if (!fs.existsSync(echidnaPath)) {
+            const corpusDirPath = `${resolvedFolder}${resolvedFolder.endsWith("/") ? "corpusDir" : "/corpusDir"}`;
+            if (!fs.existsSync(corpusDirPath)) {
+                console.log(style_1.style.error(`${style_1.ICONS.ERROR} No echidna or corpusDir folder found in`));
+                return;
+            }
+            echidnaPath = corpusDirPath;
+        }
         let files = [];
         try {
             files = fs
@@ -86,13 +95,24 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             return;
         }
         options.filePath = files[0].path;
-        result = (0, parsing_1.readFileAndProcess)(options.filePath);
+        result = (0, parsing_1.readFileAndProcess)(options.filePath, options.allFunctions);
     }
     else {
         throw new Error("No file or folder provided");
     }
     if (options.contract) {
-        result = result.filter((file) => file.path.toLowerCase().includes(options.contract.toLowerCase()));
+        if (options.contract.includes("[") && options.contract.includes("]")) {
+            let temp = [];
+            const contractArray = options.contract.replace("[", "").replace("]", "").split(",");
+            contractArray.map((contract) => {
+                const found = result.filter((file) => file.path.toLowerCase().includes(contract.trim().toLowerCase()));
+                temp.push(...found);
+            });
+            result = temp;
+        }
+        else {
+            result = result.filter((file) => file.path.toLowerCase().includes(options.contract.toLowerCase()));
+        }
     }
     result.forEach((data) => {
         console.log("\n");
@@ -103,7 +123,13 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             console.log(JSON.stringify(data.coverage, null, 2));
         }
         else {
-            if (data.coverage.lineCoveragePercentage === 0 && data.coverage.coveredLines === 0 && !options.verbose) {
+            if (options.condensedMode) {
+                console.log(`${data.coverage.lineCoveragePercentage} %`);
+                return;
+            }
+            if (data.coverage.lineCoveragePercentage === 0 &&
+                data.coverage.coveredLines === 0 &&
+                !options.verbose) {
                 console.log(style_1.style.error(`\n${style_1.ICONS.ERROR} File totaly uncovered`));
                 return;
             }
@@ -150,6 +176,6 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     });
 });
 main().catch((error) => {
-    console.error('Fatal error:', error);
+    console.error("Fatal error:", error);
     process.exit(1);
 });
