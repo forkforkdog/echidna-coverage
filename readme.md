@@ -27,14 +27,8 @@ A powerful TypeScript tool to parse and analyze Echidna code coverage reports fo
 
 ## Installation
 
-### From NPM (recommended)
 ```bash
 npm install -g echidna-coverage@2.0.1
-```
-
-### From GitHub Fork (latest development)
-```bash
-npm install -g github:forkforkdog/echidna-coverage#v2.0.1
 ```
 
 ## Usage
