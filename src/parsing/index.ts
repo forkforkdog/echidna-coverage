@@ -354,6 +354,7 @@ function processFileContent(fileContent: string, allFunctions: boolean, sourceOn
                                    fileName[1] !== fileName[1].toLowerCase() &&
                                    fileName.endsWith(".sol");
 
+      // Hardcoded exclusions for common libraries and test files
       if (
         currentPath.includes("openzeppelin") ||
         currentPath.includes("forge") ||
@@ -362,6 +363,8 @@ function processFileContent(fileContent: string, allFunctions: boolean, sourceOn
         currentPath.includes("solady") ||
         lowerFullPath.includes("/interfaces/") ||
         lowerFullPath.includes("/interface/") ||
+        lowerFullPath.includes("/forge-std/") ||
+        lowerFullPath.includes("/lib/forge-std/") ||
         isInterfaceByNaming
       ) {
         currentPath = "";
