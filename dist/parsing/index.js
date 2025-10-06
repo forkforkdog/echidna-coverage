@@ -335,6 +335,8 @@ function processFileContent(fileContent, allFunctions, sourceOnly = false, logic
                 lowerFullPath.includes("/interface/") ||
                 lowerFullPath.includes("/forge-std/") ||
                 lowerFullPath.includes("/lib/forge-std/") ||
+                lowerFullPath.includes("/fuzzlib/") ||
+                lowerFullPath.includes("/lib/fuzzlib/") ||
                 isInterfaceByNaming) {
                 currentPath = "";
                 return;
