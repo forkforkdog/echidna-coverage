@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 "use strict";
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -148,36 +149,36 @@ const main = async () => {
             else {
                 console.table(data.coverage);
             }
-            if (options.verbose) {
-                let uncoveredFunctions = data.data.filter((d) => !d.isFullyCovered);
-                if (uncoveredFunctions.length > 0) {
-                    console.log(style_1.style.warning(`\n${style_1.ICONS.WARNING} Not fully covered functions:`));
-                    console.table(uncoveredFunctions.map((d) => ({
-                        functionName: d.functionName,
-                        touched: d.touched,
-                        reverted: d.reverted,
-                        untouchedLines: d.untouchedLines,
-                    })));
-                    if (options.veryVerbose) {
-                        uncoveredFunctions.forEach((f) => {
-                            if (f.untouchedContent.length > 0 ||
-                                f.revertedContent.length > 0) {
-                                console.log(style_1.style.header(`\nFunction: ${f.functionName}`));
-                            }
-                            if (f.untouchedContent.length > 0) {
-                                console.log(style_1.style.error(`${style_1.ICONS.ERROR} Untouched lines:`));
-                                f.untouchedContent.forEach((line) => {
-                                    console.log(style_1.style.dim(line));
-                                });
-                            }
-                            if (f.revertedContent.length > 0) {
-                                console.log(style_1.style.warning(`\n${style_1.ICONS.WARNING} Reverted lines:`));
-                                f.revertedContent.forEach((line) => {
-                                    console.log(style_1.style.dim(line));
-                                });
-                            }
-                        });
-                    }
+            // Always show uncovered functions (not just in verbose mode)
+            let uncoveredFunctions = data.data.filter((d) => !d.isFullyCovered);
+            if (uncoveredFunctions.length > 0) {
+                console.log(style_1.style.warning(`\n${style_1.ICONS.WARNING} Not fully covered functions:`));
+                console.table(uncoveredFunctions.map((d) => ({
+                    functionName: d.functionName,
+                    touched: d.touched,
+                    reverted: d.reverted,
+                    untouchedLines: d.untouchedLines,
+                })));
+                // Show detailed uncovered/reverted lines only in very verbose mode
+                if (options.veryVerbose) {
+                    uncoveredFunctions.forEach((f) => {
+                        if (f.untouchedContent.length > 0 ||
+                            f.revertedContent.length > 0) {
+                            console.log(style_1.style.header(`\nFunction: ${f.functionName}`));
+                        }
+                        if (f.untouchedContent.length > 0) {
+                            console.log(style_1.style.error(`${style_1.ICONS.ERROR} Untouched lines:`));
+                            f.untouchedContent.forEach((line) => {
+                                console.log(style_1.style.dim(line));
+                            });
+                        }
+                        if (f.revertedContent.length > 0) {
+                            console.log(style_1.style.warning(`\n${style_1.ICONS.WARNING} Reverted lines:`));
+                            f.revertedContent.forEach((line) => {
+                                console.log(style_1.style.dim(line));
+                            });
+                        }
+                    });
                 }
             }
         }

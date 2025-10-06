@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { parseArgs } from "./args";
 import { readFileAndProcess } from "./parsing";
 import { style, ICONS } from "./style";
@@ -150,46 +152,45 @@ const main = async () => {
         console.table(data.coverage);
       }
 
+      // Always show uncovered functions (not just in verbose mode)
+      let uncoveredFunctions = data.data.filter((d) => !d.isFullyCovered);
+      if (uncoveredFunctions.length > 0) {
+        console.log(
+          style.warning(`\n${ICONS.WARNING} Not fully covered functions:`)
+        );
+        console.table(
+          uncoveredFunctions.map((d) => ({
+            functionName: d.functionName,
+            touched: d.touched,
+            reverted: d.reverted,
+            untouchedLines: d.untouchedLines,
+          }))
+        );
 
-      if (options.verbose) {
-        let uncoveredFunctions = data.data.filter((d) => !d.isFullyCovered);
-        if (uncoveredFunctions.length > 0) {
-          console.log(
-            style.warning(`\n${ICONS.WARNING} Not fully covered functions:`)
-          );
-          console.table(
-            uncoveredFunctions.map((d) => ({
-              functionName: d.functionName,
-              touched: d.touched,
-              reverted: d.reverted,
-              untouchedLines: d.untouchedLines,
-            }))
-          );
-
-          if (options.veryVerbose) {
-            uncoveredFunctions.forEach((f) => {
-              if (
-                f.untouchedContent.length > 0 ||
-                f.revertedContent.length > 0
-              ) {
-                console.log(style.header(`\nFunction: ${f.functionName}`));
-              }
-              if (f.untouchedContent.length > 0) {
-                console.log(style.error(`${ICONS.ERROR} Untouched lines:`));
-                f.untouchedContent.forEach((line) => {
-                  console.log(style.dim(line));
-                });
-              }
-              if (f.revertedContent.length > 0) {
-                console.log(
-                  style.warning(`\n${ICONS.WARNING} Reverted lines:`)
-                );
-                f.revertedContent.forEach((line) => {
-                  console.log(style.dim(line));
-                });
-              }
-            });
-          }
+        // Show detailed uncovered/reverted lines only in very verbose mode
+        if (options.veryVerbose) {
+          uncoveredFunctions.forEach((f) => {
+            if (
+              f.untouchedContent.length > 0 ||
+              f.revertedContent.length > 0
+            ) {
+              console.log(style.header(`\nFunction: ${f.functionName}`));
+            }
+            if (f.untouchedContent.length > 0) {
+              console.log(style.error(`${ICONS.ERROR} Untouched lines:`));
+              f.untouchedContent.forEach((line) => {
+                console.log(style.dim(line));
+              });
+            }
+            if (f.revertedContent.length > 0) {
+              console.log(
+                style.warning(`\n${ICONS.WARNING} Reverted lines:`)
+              );
+              f.revertedContent.forEach((line) => {
+                console.log(style.dim(line));
+              });
+            }
+          });
         }
       }
     }
