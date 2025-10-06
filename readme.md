@@ -28,7 +28,7 @@ A powerful TypeScript tool to parse and analyze Echidna code coverage reports fo
 ## Installation
 
 ```bash
-npm install -g echidna-coverage@2.0.1
+npm install -g ga-echidna-coverage@2.0.1
 ```
 
 ## Usage
