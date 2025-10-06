@@ -128,6 +128,20 @@ const main = async () => {
     }
   }
 
+  // When using source-only with scope file, filter to only scoped contracts
+  if (options.sourceOnly && options.scopeFile) {
+    const scopeContracts = parseScopeFile(options.scopeFile);
+    if (scopeContracts.length > 0) {
+      const scopeContractNames = new Set(
+        scopeContracts.map((sc) => getContractNameFromPath(sc.path))
+      );
+      result = result.filter((file) => {
+        const contractName = path.basename(file.path);
+        return scopeContractNames.has(contractName);
+      });
+    }
+  }
+
   result.forEach((data) => {
     console.log("\n");
     console.log(style.dim("═".repeat(50)));
