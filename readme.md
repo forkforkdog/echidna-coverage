@@ -1,20 +1,45 @@
 # Echidna Coverage Reporter
 
-A TypeScript tool to parse and analyze Echidna code coverage reports for Solidity smart contracts.
+A powerful TypeScript tool to parse and analyze Echidna code coverage reports for Solidity smart contracts with advanced scope-based filtering and reporting.
 
 ## Features
 
-- Parse Echidna coverage output files
-- Generate coverage reports by contract and function
-- Track covered, uncovered, and reverted functions
-- Multiple output formats (table/JSON)
-- Coverage threshold checks
-- Detailed verbose reporting option
+### Core Features
+- 📊 Parse Echidna coverage output files
+- 📈 Generate coverage reports by contract and function
+- 🎯 **Scope-based coverage analysis** with `scope.csv` integration
+- 🔍 **Source-only filtering** to exclude test and fuzzing folders
+- 🧪 **Logical coverage reporting** for invariant tests
+- 🚫 **Smart library exclusions** (forge-std, fuzzlib, OpenZeppelin, interfaces)
+- 📝 **Dual markdown report generation** (source + logical coverage)
+- ✅ Track covered, uncovered, and reverted functions
+- 📊 Multiple output formats (table/JSON/markdown)
+- ⚡ Coverage threshold checks
+- 🔎 Detailed verbose reporting option
+- 🎨 Always show uncovered functions
+
+### v2.0 New Features
+- **Scope-based totals**: Calculate coverage only for contracts in scope (not all files)
+- **Smart interface detection**: Auto-exclude `I[CapitalLetter]*.sol` files
+- **Package grouping**: Organize reports by project packages
+- **Aggregate statistics**: See total coverage across scoped contracts
+- **Custom exclusions**: `--exclude` flag for specific contracts
 
 ## Installation
 
+### From NPM (recommended)
 ```bash
-brew install Simon-busch/echidna-coverage/echidna-coverage
+npm install -g echidna-coverage@2.0.1
+```
+
+### From Homebrew
+```bash
+brew install Simon-Busch/echidna-coverage/echidna-coverage
+```
+
+### From GitHub Fork (latest development)
+```bash
+npm install -g github:forkforkdog/echidna-coverage#v2.0.1
 ```
 
 ## Usage
