@@ -32,15 +32,6 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const args_1 = require("./args");
 const parsing_1 = require("./parsing");
@@ -54,14 +45,35 @@ const resolvePathFromCwd = (inputPath) => {
     }
     return path.resolve(process.cwd(), inputPath);
 };
-const main = () => __awaiter(void 0, void 0, void 0, function* () {
+const calculateAggregateCoverage = (results, scopeContracts) => {
+    // Create a set of contract names from scope
+    const scopeContractNames = new Set(scopeContracts.map((sc) => (0, utils_1.getContractNameFromPath)(sc.path)));
+    // Filter results to only include contracts in scope
+    const scopedResults = results.filter((result) => {
+        const contractName = path.basename(result.path);
+        return scopeContractNames.has(contractName);
+    });
+    // Aggregate coverage stats
+    const totalCoveredLines = scopedResults.reduce((sum, result) => sum + result.coverage.coveredLines, 0);
+    const totalUntouchedLines = scopedResults.reduce((sum, result) => sum + result.coverage.untouchedLines, 0);
+    const totalLines = totalCoveredLines + totalUntouchedLines;
+    const totalPercentage = totalLines === 0 ? 0 : Number(((totalCoveredLines / totalLines) * 100).toFixed(2));
+    return {
+        totalCoveredLines,
+        totalUntouchedLines,
+        totalPercentage,
+        contractsInScope: scopeContractNames.size,
+        contractsCovered: scopedResults.length,
+    };
+};
+const main = async () => {
     const options = (0, args_1.parseArgs)();
     const version = require("../package.json").version;
     console.log(`Running Echidna coverage version ${version}`);
-    yield (0, utils_1.checkLatestVersion)(version);
+    await (0, utils_1.checkLatestVersion)(version);
     let result = [];
     if (options.filePath) {
-        result = (0, parsing_1.readFileAndProcess)(options.filePath, options.allFunctions);
+        result = (0, parsing_1.readFileAndProcess)(options.filePath, options.allFunctions, options.sourceOnly, options.logical, options.exclude);
     }
     else if (options.echidnaFolder) {
         const resolvedFolder = resolvePathFromCwd(options.echidnaFolder);
@@ -95,7 +107,7 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
             return;
         }
         options.filePath = files[0].path;
-        result = (0, parsing_1.readFileAndProcess)(options.filePath, options.allFunctions);
+        result = (0, parsing_1.readFileAndProcess)(options.filePath, options.allFunctions, options.sourceOnly, options.logical, options.exclude);
     }
     else {
         throw new Error("No file or folder provided");
@@ -174,7 +186,34 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         }
         console.log(style_1.style.dim("═".repeat(50)));
     });
-});
+    // Display aggregate coverage if scope file is provided
+    if (options.scopeFile) {
+        const scopeContracts = (0, utils_1.parseScopeFile)(options.scopeFile);
+        if (scopeContracts.length > 0) {
+            const aggregateStats = calculateAggregateCoverage(result, scopeContracts);
+            console.log("\n");
+            console.log(style_1.style.dim("═".repeat(50)));
+            console.log(style_1.style.header(`${style_1.ICONS.FILE} TOTAL COVERAGE (Scoped Contracts)`));
+            console.log(style_1.style.dim("═".repeat(50)));
+            const summaryData = {
+                "Contracts in Scope": aggregateStats.contractsInScope,
+                "Contracts Covered": aggregateStats.contractsCovered,
+                "Total Covered Lines": aggregateStats.totalCoveredLines,
+                "Total Untouched Lines": aggregateStats.totalUntouchedLines,
+                "Total Lines": aggregateStats.totalCoveredLines + aggregateStats.totalUntouchedLines,
+                "Total Coverage %": `${aggregateStats.totalPercentage}%`,
+            };
+            console.table(summaryData);
+            if (aggregateStats.totalPercentage < options.threshold) {
+                console.log(style_1.style.error(`\n${style_1.ICONS.ERROR} Warning: Total coverage ${aggregateStats.totalPercentage}% below threshold ${options.threshold}%`));
+            }
+            else {
+                console.log(style_1.style.success(`\n✓ Total coverage meets threshold (${aggregateStats.totalPercentage}% >= ${options.threshold}%)`));
+            }
+            console.log(style_1.style.dim("═".repeat(50)));
+        }
+    }
+};
 main().catch((error) => {
     console.error("Fatal error:", error);
     process.exit(1);

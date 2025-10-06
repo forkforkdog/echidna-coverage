@@ -1,2 +1,7 @@
 node_modules
 data
+
+# Test data and coverage files
+echidna-corpus/
+scope.csv
+echidna-coverage-analyzer.sh

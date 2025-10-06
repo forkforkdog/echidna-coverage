@@ -11,4 +11,8 @@ export const DEFAULT_CONFIG: ProgramOptions = {
   echidnaFolder: ".",
   condensedMode: false,
   allFunctions: false,
+  scopeFile: undefined,
+  sourceOnly: false,
+  logical: false,
+  exclude: undefined,
 };

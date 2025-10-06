@@ -1,17 +1,54 @@
-import { config } from "process";
 import { parseArgs } from "./args";
 import { readFileAndProcess } from "./parsing";
 import { style, ICONS } from "./style";
-import { checkLatestVersion } from "./utils";
+import { checkLatestVersion, parseScopeFile, getContractNameFromPath } from "./utils";
 import * as fs from "fs";
 import * as path from "path";
-import { FileDataWithCoverage } from "./types/types";
+import { FileDataWithCoverage, ScopeContract } from "./types/types";
 
 const resolvePathFromCwd = (inputPath: string): string => {
   if (path.isAbsolute(inputPath)) {
     return inputPath;
   }
   return path.resolve(process.cwd(), inputPath);
+};
+
+const calculateAggregateCoverage = (
+  results: FileDataWithCoverage[],
+  scopeContracts: ScopeContract[]
+): { totalCoveredLines: number; totalUntouchedLines: number; totalPercentage: number; contractsInScope: number; contractsCovered: number } => {
+  // Create a set of contract names from scope
+  const scopeContractNames = new Set(
+    scopeContracts.map((sc) => getContractNameFromPath(sc.path))
+  );
+
+  // Filter results to only include contracts in scope
+  const scopedResults = results.filter((result) => {
+    const contractName = path.basename(result.path);
+    return scopeContractNames.has(contractName);
+  });
+
+  // Aggregate coverage stats
+  const totalCoveredLines = scopedResults.reduce(
+    (sum, result) => sum + result.coverage.coveredLines,
+    0
+  );
+  const totalUntouchedLines = scopedResults.reduce(
+    (sum, result) => sum + result.coverage.untouchedLines,
+    0
+  );
+
+  const totalLines = totalCoveredLines + totalUntouchedLines;
+  const totalPercentage =
+    totalLines === 0 ? 0 : Number(((totalCoveredLines / totalLines) * 100).toFixed(2));
+
+  return {
+    totalCoveredLines,
+    totalUntouchedLines,
+    totalPercentage,
+    contractsInScope: scopeContractNames.size,
+    contractsCovered: scopedResults.length,
+  };
 };
 
 const main = async () => {
@@ -22,7 +59,7 @@ const main = async () => {
 
   let result: FileDataWithCoverage[] = [];
   if (options.filePath) {
-    result = readFileAndProcess(options.filePath, options.allFunctions);
+    result = readFileAndProcess(options.filePath, options.allFunctions, options.sourceOnly, options.logical, options.exclude);
   } else if (options.echidnaFolder) {
     const resolvedFolder = resolvePathFromCwd(options.echidnaFolder);
     let echidnaPath = `${resolvedFolder}${
@@ -64,7 +101,7 @@ const main = async () => {
     }
 
     options.filePath = files[0].path;
-    result = readFileAndProcess(options.filePath, options.allFunctions);
+    result = readFileAndProcess(options.filePath, options.allFunctions, options.sourceOnly, options.logical, options.exclude);
   } else {
     throw new Error("No file or folder provided");
   }
@@ -167,6 +204,47 @@ const main = async () => {
 
     console.log(style.dim("═".repeat(50)));
   });
+
+  // Display aggregate coverage if scope file is provided
+  if (options.scopeFile) {
+    const scopeContracts = parseScopeFile(options.scopeFile);
+
+    if (scopeContracts.length > 0) {
+      const aggregateStats = calculateAggregateCoverage(result, scopeContracts);
+
+      console.log("\n");
+      console.log(style.dim("═".repeat(50)));
+      console.log(style.header(`${ICONS.FILE} TOTAL COVERAGE (Scoped Contracts)`));
+      console.log(style.dim("═".repeat(50)));
+
+      const summaryData = {
+        "Contracts in Scope": aggregateStats.contractsInScope,
+        "Contracts Covered": aggregateStats.contractsCovered,
+        "Total Covered Lines": aggregateStats.totalCoveredLines,
+        "Total Untouched Lines": aggregateStats.totalUntouchedLines,
+        "Total Lines": aggregateStats.totalCoveredLines + aggregateStats.totalUntouchedLines,
+        "Total Coverage %": `${aggregateStats.totalPercentage}%`,
+      };
+
+      console.table(summaryData);
+
+      if (aggregateStats.totalPercentage < options.threshold) {
+        console.log(
+          style.error(
+            `\n${ICONS.ERROR} Warning: Total coverage ${aggregateStats.totalPercentage}% below threshold ${options.threshold}%`
+          )
+        );
+      } else {
+        console.log(
+          style.success(
+            `\n✓ Total coverage meets threshold (${aggregateStats.totalPercentage}% >= ${options.threshold}%)`
+          )
+        );
+      }
+
+      console.log(style.dim("═".repeat(50)));
+    }
+  }
 };
 
 main().catch((error) => {

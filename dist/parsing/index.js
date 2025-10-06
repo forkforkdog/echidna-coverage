@@ -70,6 +70,8 @@ function parseFunctions(lines, allFunctions) {
                 untouchedContent: [],
                 totalLines: 0,
                 isViewPure: isViewPure,
+                logicalCoveredLines: 0,
+                logicalUntouchedLines: 0,
             };
         }
         // Check lines between function declaration and opening brace for view/external
@@ -106,16 +108,25 @@ function parseFunctions(lines, allFunctions) {
                     if (nextParts[1] === "*") {
                         currentFunction.coveredLines++;
                         currentFunction.isTouched = true;
+                        if (isLogicalLine(content)) {
+                            currentFunction.logicalCoveredLines++;
+                        }
                     }
                     else if (nextParts[1] === "r") {
                         currentFunction.revertedLines++;
                         currentFunction.revertedContent.push(content);
                         currentFunction.isReverted = true;
                         currentFunction.isTouched = true;
+                        if (isLogicalLine(content)) {
+                            currentFunction.logicalCoveredLines++;
+                        }
                     }
                     else if (nextParts[1] === "" && isUntouchedLine(content)) {
                         currentFunction.untouchedLines++;
                         currentFunction.untouchedContent.push(content);
+                        if (isLogicalLine(content)) {
+                            currentFunction.logicalUntouchedLines++;
+                        }
                     }
                 }
                 else if (trimmedContent === "}") {
@@ -125,12 +136,20 @@ function parseFunctions(lines, allFunctions) {
                 else if (parts[1] === "*") {
                     currentFunction.coveredLines++;
                     currentFunction.isTouched = true;
+                    // Track logical coverage
+                    if (isLogicalLine(content)) {
+                        currentFunction.logicalCoveredLines++;
+                    }
                 }
                 else if (parts[1] === "r") {
                     currentFunction.revertedLines++;
                     currentFunction.revertedContent.push(content);
                     currentFunction.isReverted = true;
                     currentFunction.isTouched = true;
+                    // Track logical coverage for reverted lines
+                    if (isLogicalLine(content)) {
+                        currentFunction.logicalCoveredLines++;
+                    }
                 }
                 else if (parts[1] === "" && isUntouchedLine(content)) {
                     if (lines[index - 1]
@@ -143,10 +162,18 @@ function parseFunctions(lines, allFunctions) {
                             lines[index + 1].split("|").map((part) => part.trim())[1] === "*")) {
                         currentFunction.coveredLines++;
                         currentFunction.isTouched = true;
+                        // Track logical coverage
+                        if (isLogicalLine(content)) {
+                            currentFunction.logicalCoveredLines++;
+                        }
                     }
                     else {
                         currentFunction.untouchedLines++;
                         currentFunction.untouchedContent.push(content);
+                        // Track logical coverage
+                        if (isLogicalLine(content)) {
+                            currentFunction.logicalUntouchedLines++;
+                        }
                     }
                 }
             }
@@ -207,12 +234,61 @@ function isUntouchedLine(content) {
         return false;
     return true;
 }
-function calculateCoverage(functions) {
+function isLogicalLine(content) {
+    const trimmedContent = content.trim();
+    // Skip empty lines
+    if (trimmedContent === "")
+        return false;
+    // Skip comments
+    if (trimmedContent.startsWith("//") ||
+        trimmedContent.startsWith("/*") ||
+        trimmedContent.startsWith("*") ||
+        trimmedContent.endsWith("*/"))
+        return false;
+    // Skip isolated brackets
+    if (trimmedContent === "{" ||
+        trimmedContent === "}" ||
+        trimmedContent === "(" ||
+        trimmedContent === ")" ||
+        trimmedContent === ");" ||
+        trimmedContent === "} else {" ||
+        trimmedContent === "});")
+        return false;
+    // Skip import/pragma statements
+    if (trimmedContent.startsWith("import ") ||
+        trimmedContent.startsWith("pragma "))
+        return false;
+    // Skip struct/enum/interface/contract/library/event definitions (headers only)
+    if (trimmedContent.match(/^(struct|enum|interface|contract|library|event|error)\s+\w+/) &&
+        !trimmedContent.includes("(") // Skip if it's just the declaration
+    )
+        return false;
+    // Skip modifier/visibility keywords alone
+    if (trimmedContent.match(/^(public|private|internal|external|view|pure|payable|override|virtual)\s*$/))
+        return false;
+    // Skip simple variable/mapping/array declarations without initialization
+    if (trimmedContent.match(/^(uint|int|bool|address|bytes|string|mapping|[A-Z]\w*)\s+\w+;$/) ||
+        trimmedContent.match(/^(uint|int|bool|address|bytes|string)\d*\s+\w+;$/))
+        return false;
+    // Include everything else (assignments, function calls, returns, requires, etc.)
+    return true;
+}
+function calculateCoverage(functions, useLogical = false) {
     const totalFunctions = functions.length;
     const coveredFunctions = functions.filter((f) => f.isTotallyCovered).length;
-    const coveredLines = functions.reduce((acc, f) => acc + f.coveredLines, 0);
+    let coveredLines;
+    let totalUntouchedLines;
+    if (useLogical) {
+        // Use logical coverage metrics
+        coveredLines = functions.reduce((acc, f) => acc + f.logicalCoveredLines, 0);
+        totalUntouchedLines = functions.reduce((acc, f) => acc + f.logicalUntouchedLines, 0);
+    }
+    else {
+        // Use standard coverage metrics
+        coveredLines = functions.reduce((acc, f) => acc + f.coveredLines, 0);
+        totalUntouchedLines = functions.reduce((acc, f) => acc + f.untouchedLines, 0);
+    }
     const revertedFunctions = functions.filter((f) => f.isReverted).length;
-    const totalUntouchedLines = functions.reduce((acc, f) => acc + f.untouchedLines, 0);
     const functionCoveragePercentage = coveredFunctions === 0 && totalFunctions === 0
         ? 0
         : Number(((coveredFunctions / totalFunctions) * 100).toFixed(2));
@@ -229,7 +305,7 @@ function calculateCoverage(functions) {
         lineCoveragePercentage: lineCoveragePercentage,
     };
 }
-function processFileContent(fileContent, allFunctions) {
+function processFileContent(fileContent, allFunctions, sourceOnly = false, logical = false, exclude) {
     const lines = fileContent.split("\n");
     const fileDataMap = {};
     let currentPath = "";
@@ -237,16 +313,64 @@ function processFileContent(fileContent, allFunctions) {
     lines.forEach((line) => {
         const pathMatch = line.match(/^\/.*\/.*$/);
         if (pathMatch) {
-            currentPath = pathMatch[0];
-            const pathParts = currentPath.split("/");
+            const fullPath = pathMatch[0];
+            const pathParts = fullPath.split("/");
             currentPath = path_1.default.join(pathParts[pathParts.length - 2], pathParts[pathParts.length - 1]);
+            // Default exclusions (check shortened path and full path for interfaces)
+            const lowerFullPath = fullPath.toLowerCase();
+            const fileName = path_1.default.basename(fullPath);
+            // Smart interface detection: files matching I[CapitalLetter]*.sol pattern
+            const isInterfaceByNaming = fileName.length > 1 &&
+                fileName.startsWith("I") &&
+                fileName[1] === fileName[1].toUpperCase() &&
+                fileName[1] !== fileName[1].toLowerCase() &&
+                fileName.endsWith(".sol");
             if (currentPath.includes("openzeppelin") ||
                 currentPath.includes("forge") ||
                 currentPath.endsWith(".t.sol") ||
                 currentPath.endsWith(".s.sol") ||
-                currentPath.includes("solady")) {
+                currentPath.includes("solady") ||
+                lowerFullPath.includes("/interfaces/") ||
+                lowerFullPath.includes("/interface/") ||
+                isInterfaceByNaming) {
                 currentPath = "";
                 return;
+            }
+            // Check --exclude flag for specific interface names
+            if (exclude) {
+                const fileName = path_1.default.basename(fullPath);
+                const excludeList = exclude
+                    .replace(/[\[\]]/g, "")
+                    .split(",")
+                    .map((name) => name.trim());
+                for (const excludeName of excludeList) {
+                    // Match exact filename with .sol extension
+                    const nameToMatch = excludeName.endsWith(".sol") ? excludeName : `${excludeName}.sol`;
+                    if (fileName === nameToMatch) {
+                        currentPath = "";
+                        return;
+                    }
+                }
+            }
+            // Additional exclusions for --source-only flag (check FULL path)
+            if (sourceOnly) {
+                const lowerFullPath = fullPath.toLowerCase();
+                if (lowerFullPath.includes("/fuzzing/") ||
+                    lowerFullPath.includes("/test/")) {
+                    currentPath = "";
+                    return;
+                }
+            }
+            // Filter for --logical flag: only include logicalCoverage/logical*.sol files
+            if (logical) {
+                const normalizedFullPath = fullPath.replace(/\\/g, '/');
+                const hasLogicalFolder = normalizedFullPath.includes("/logicalCoverage/");
+                const fileName = path_1.default.basename(fullPath);
+                const isLogicalFile = fileName.startsWith("logical") && fileName.endsWith(".sol");
+                if (!(hasLogicalFolder && isLogicalFile)) {
+                    currentPath = "";
+                    return;
+                }
             }
             fileDataMap[currentPath] = [];
         }
@@ -268,13 +392,13 @@ function processFileContent(fileContent, allFunctions) {
         return {
             path: filePath,
             data: lineData,
-            coverage: calculateCoverage(functionBlocks),
+            coverage: calculateCoverage(functionBlocks, false),
         };
     });
 }
-function readFileAndProcess(filePath, allFunctions) {
+function readFileAndProcess(filePath, allFunctions, sourceOnly = false, logical = false, exclude) {
     const fileContent = fs.readFileSync(filePath, "utf-8");
-    return processFileContent(fileContent, allFunctions);
+    return processFileContent(fileContent, allFunctions, sourceOnly, logical, exclude);
 }
 const checkViewOrPureFunction = (content) => {
     const words = content

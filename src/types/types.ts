@@ -40,6 +40,8 @@ export interface FunctionBlock {
   untouchedContent: string[];
   totalLines: number;
   isViewPure: boolean;
+  logicalCoveredLines: number;
+  logicalUntouchedLines: number;
 }
 
 export interface ProgramOptions {
@@ -53,4 +55,15 @@ export interface ProgramOptions {
   echidnaFolder?: string;
   condensedMode: boolean;
   allFunctions: boolean;
+  scopeFile?: string;
+  sourceOnly: boolean;
+  logical: boolean;
+  exclude?: string;
+}
+
+export interface ScopeContract {
+  path: string;
+  source: number;
+  total: number;
+  comment: number;
 }

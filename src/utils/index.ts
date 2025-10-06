@@ -1,5 +1,8 @@
 import https from "https";
+import * as fs from "fs";
+import * as path from "path";
 import { style } from "../style";
+import { ScopeContract } from "../types/types";
 
 export const checkLatestVersion = (currentVersion: string): Promise<void> => {
   return new Promise((resolve) => {
@@ -44,4 +47,37 @@ export const checkLatestVersion = (currentVersion: string): Promise<void> => {
         resolve();
       });
   });
+};
+
+export const parseScopeFile = (scopeFilePath: string): ScopeContract[] => {
+  try {
+    const fileContent = fs.readFileSync(scopeFilePath, "utf-8");
+    const lines = fileContent.trim().split("\n");
+
+    // Skip header line
+    const dataLines = lines.slice(1);
+
+    return dataLines.map((line) => {
+      const parts = line.split(",");
+      if (parts.length < 4) {
+        throw new Error(`Invalid scope file format: ${line}`);
+      }
+
+      return {
+        path: parts[0].trim(),
+        source: parseInt(parts[1].trim(), 10),
+        total: parseInt(parts[2].trim(), 10),
+        comment: parseInt(parts[3].trim(), 10),
+      };
+    });
+  } catch (error) {
+    console.error(style.error(`Error reading scope file: ${error}`));
+    return [];
+  }
+};
+
+export const getContractNameFromPath = (fullPath: string): string => {
+  // Extract the filename from the full path
+  // e.g., "amm-pool-type-dynamic/src/DynamicPoolType.sol" -> "DynamicPoolType.sol"
+  return path.basename(fullPath);
 };

@@ -19,6 +19,10 @@ Options:
   -c, --contract <name>      Contract name to filter, accept array of contracts as well
   -cm, --condensed-mode  Condensed mode
   -af, --all-functions    Show all functions ( default to hide pure and view functions)
+  -s, --scope-file <path>  Path to scope.csv file for total coverage calculation
+  --source-only          Exclude all fuzzing and test folders from coverage
+  --logical              Report only files in logicalCoverage/ folder matching logical*.sol pattern
+  --exclude <names>      Exclude specific interface names, e.g., "[IContract1, IContract2]"
   `);
   process.exit(0);
 }
@@ -80,6 +84,25 @@ export function parseArgs(): ProgramOptions {
               throw new Error("Contract name is required");
             }
             options.contract = args[++i];
+            break;
+        case "--scope-file":
+        case "-s":
+            if (!args[i + 1] || args[i + 1].startsWith("-")) {
+              throw new Error("Scope file path is required");
+            }
+            options.scopeFile = args[++i];
+            break;
+        case "--source-only":
+            options.sourceOnly = true;
+            break;
+        case "--logical":
+            options.logical = true;
+            break;
+        case "--exclude":
+            if (!args[i + 1] || args[i + 1].startsWith("-")) {
+              throw new Error("Exclude list is required");
+            }
+            options.exclude = args[++i];
             break;
         default:
           throw new Error(`Unknown option: ${args[i]}`);
