@@ -4,6 +4,22 @@ import * as path from "path";
 import { style } from "../style";
 import { ScopeContract } from "../types/types";
 
+// Compare semantic versions (returns true if v1 > v2)
+const isVersionGreater = (v1: string, v2: string): boolean => {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+
+  for (let i = 0; i < 3; i++) {
+    const num1 = parts1[i] || 0;
+    const num2 = parts2[i] || 0;
+
+    if (num1 > num2) return true;
+    if (num1 < num2) return false;
+  }
+
+  return false; // versions are equal
+};
+
 export const checkLatestVersion = (currentVersion: string): Promise<void> => {
   return new Promise((resolve) => {
     https
@@ -29,7 +45,8 @@ export const checkLatestVersion = (currentVersion: string): Promise<void> => {
               // Get latest tag (first in array)
               const latestVersion = tags[0].name.replace("v", "");
 
-              if (latestVersion && latestVersion !== currentVersion) {
+              // Only show update message if latest version is actually greater
+              if (latestVersion && isVersionGreater(latestVersion, currentVersion)) {
                 console.log(
                   style.warning(`\nNew version available: ${latestVersion} (current: ${currentVersion})`)
                 );

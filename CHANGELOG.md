@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1] - 2025-10-06
+
+### Bug Fixes
+- **Fixed**: Version check incorrectly showing "new version available" when current version is newer
+  - Added proper semantic version comparison (e.g., 2.0.0 > 1.0.8)
+  - Now only shows update message when remote version is actually greater
+
 ## [2.0.0] - 2025-10-06
 
 ### Major Features

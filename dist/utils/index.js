@@ -41,6 +41,20 @@ const https_1 = __importDefault(require("https"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const style_1 = require("../style");
+// Compare semantic versions (returns true if v1 > v2)
+const isVersionGreater = (v1, v2) => {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    for (let i = 0; i < 3; i++) {
+        const num1 = parts1[i] || 0;
+        const num2 = parts2[i] || 0;
+        if (num1 > num2)
+            return true;
+        if (num1 < num2)
+            return false;
+    }
+    return false; // versions are equal
+};
 const checkLatestVersion = (currentVersion) => {
     return new Promise((resolve) => {
         https_1.default
@@ -61,7 +75,8 @@ const checkLatestVersion = (currentVersion) => {
                     }
                     // Get latest tag (first in array)
                     const latestVersion = tags[0].name.replace("v", "");
-                    if (latestVersion && latestVersion !== currentVersion) {
+                    // Only show update message if latest version is actually greater
+                    if (latestVersion && isVersionGreater(latestVersion, currentVersion)) {
                         console.log(style_1.style.warning(`\nNew version available: ${latestVersion} (current: ${currentVersion})`));
                         console.log(style_1.style.info("To upgrade, run: brew upgrade Simon-Busch/echidna-coverage/echidna-coverage\n"));
                     }
