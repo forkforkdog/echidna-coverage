@@ -1,6 +1,6 @@
 {
   "name": "ga-echidna-coverage",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Enhanced Echidna coverage analysis with scope-based reporting, logical coverage, and smart filtering",
   "main": "index.ts",
   "bin": {
@@ -26,6 +26,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
+    "ga-echidna-coverage": "^2.0.2",
     "ts-node": "^10.9.2"
   }
 }

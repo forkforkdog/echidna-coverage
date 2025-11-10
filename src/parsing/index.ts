@@ -171,7 +171,16 @@ function parseFunctions(lines: string[], allFunctions: boolean): FunctionBlock[]
   if (allFunctions) {
     return functions;
   } else {
-    return functions.filter((f) => !f.isViewPure);
+    // Filter out view/pure functions
+    const filteredFunctions = functions.filter((f) => !f.isViewPure);
+
+    // If filtering results in zero functions but we had functions before,
+    // return all functions (contract only has view/pure functions)
+    if (filteredFunctions.length === 0 && functions.length > 0) {
+      return functions;
+    }
+
+    return filteredFunctions;
   }
 }
 
