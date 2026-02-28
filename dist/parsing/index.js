@@ -46,23 +46,85 @@ function parseFunctions(lines, allFunctions) {
     let functionBodyStarted = false;
     let isViewPure = false;
     let commentTracker = false;
+    // Track compiler-active lines outside any function body (contract declaration,
+    // state variable declarations/initializations, etc.)
+    const contractLevel = {
+        name: "<contract-level>",
+        lines: [],
+        isTouched: false,
+        isReverted: false,
+        coveredLines: 0,
+        untouchedLines: 0,
+        revertedLines: 0,
+        isTotallyCovered: false,
+        revertedContent: [],
+        untouchedContent: [],
+        totalLines: 0,
+        isViewPure: false,
+        logicalCoveredLines: 0,
+        logicalUntouchedLines: 0,
+    };
     lines.forEach((line, index) => {
         const parts = line.split("|").map((part) => part.trim());
         if (parts.length < 3)
             return;
-        const content = parts[2];
+        // Echidna coverage format has 4 columns: lineNo | hitCount | marker | content
+        // - parts[0] = line number
+        // - parts[1] = hit count (number if compiler-instrumented, empty if not active)
+        // - parts[2] = marker (* = covered, r = reverted, empty = untouched)
+        // - parts[3] = source code content
+        // A line is compiler-active ONLY if parts[1] is non-empty (has a hit count, even "0").
+        // Lines with empty parts[1] are NOT instrumented by the compiler and must not be counted.
+        const hasHitCount = parts.length >= 4;
+        const hitCountCol = hasHitCount ? parts[1] : "";
+        const markerCol = hasHitCount ? parts[2] : parts[1];
+        const content = hasHitCount ? parts[3] : parts[2];
+        const isCompilerActive = hitCountCol !== "";
         const functionMatch = content.match(/function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/);
-        // Check for function start
-        if (functionMatch) {
+        // Also match constructor, modifier, receive, fallback as function-like blocks
+        const constructorMatch = !functionMatch ? content.match(/\b(constructor|modifier\s+([a-zA-Z_][a-zA-Z0-9_]*))\s*\(/) : null;
+        const receiveMatch = (!functionMatch && !constructorMatch) ? content.match(/\b(receive|fallback)\s*\(\s*\)/) : null;
+        const isAnyFunctionLike = functionMatch || constructorMatch || receiveMatch;
+        // Count compiler-active lines outside any function body
+        // Exclude function-like declaration lines (they'll be counted when the body starts)
+        if (!currentFunction && isCompilerActive && !isAnyFunctionLike) {
+            contractLevel.totalLines++;
+            if (markerCol === "*") {
+                contractLevel.coveredLines++;
+                contractLevel.isTouched = true;
+            }
+            else if (markerCol === "r") {
+                contractLevel.revertedLines++;
+                contractLevel.revertedContent.push(content);
+                contractLevel.isReverted = true;
+                contractLevel.isTouched = true;
+            }
+            else {
+                contractLevel.untouchedLines++;
+                contractLevel.untouchedContent.push(content);
+            }
+        }
+        // Check for function start (including constructors, modifiers, receive, fallback)
+        if (isAnyFunctionLike) {
             bracketCount = 0;
             functionBodyStarted = false;
-            isViewPure = checkViewOrPureFunction(content);
+            isViewPure = functionMatch ? checkViewOrPureFunction(content) : false;
+            let blockName;
+            if (functionMatch) {
+                blockName = functionMatch[1];
+            }
+            else if (constructorMatch) {
+                blockName = constructorMatch[2] ? `modifier_${constructorMatch[2]}` : "constructor";
+            }
+            else {
+                blockName = receiveMatch[1]; // "receive" or "fallback"
+            }
             currentFunction = {
-                name: functionMatch[1],
+                name: blockName,
                 lines: [],
                 isTouched: false,
                 isReverted: false,
-                coveredLines: 1,
+                coveredLines: 0,
                 untouchedLines: 0,
                 revertedLines: 0,
                 isTotallyCovered: false,
@@ -79,6 +141,33 @@ function parseFunctions(lines, allFunctions) {
             if (checkViewOrPureFunction(content)) {
                 currentFunction.isViewPure = checkViewOrPureFunction(content);
             }
+            // Count compiler-active function declaration lines (where { is on a later line)
+            // Skip lines that contain { — those are handled by the opening brace handler below
+            if (isCompilerActive && !content.includes("{")) {
+                if (markerCol === "*") {
+                    currentFunction.coveredLines++;
+                    currentFunction.isTouched = true;
+                    if (isLogicalLine(content)) {
+                        currentFunction.logicalCoveredLines++;
+                    }
+                }
+                else if (markerCol === "r") {
+                    currentFunction.revertedLines++;
+                    currentFunction.revertedContent.push(content);
+                    currentFunction.isReverted = true;
+                    currentFunction.isTouched = true;
+                    if (isLogicalLine(content)) {
+                        currentFunction.logicalCoveredLines++;
+                    }
+                }
+                else {
+                    currentFunction.untouchedLines++;
+                    currentFunction.untouchedContent.push(content);
+                    if (isLogicalLine(content)) {
+                        currentFunction.logicalUntouchedLines++;
+                    }
+                }
+            }
         }
         if (currentFunction) {
             const trimmedContent = content.trim();
@@ -93,39 +182,79 @@ function parseFunctions(lines, allFunctions) {
             }
             currentFunction.lines.push(line);
             currentFunction.totalLines++;
-            if (content.includes("{")) {
-                bracketCount++;
-                if (bracketCount === 1) {
+            const openBraces = (content.match(/\{/g) || []).length;
+            const closeBraces = (content.match(/\}/g) || []).length;
+            if (openBraces > 0) {
+                bracketCount += openBraces;
+                if (bracketCount >= 1 && !functionBodyStarted) {
                     functionBodyStarted = true;
+                    // Count the function declaration / opening brace line if compiler-active
+                    if (isCompilerActive) {
+                        if (markerCol === "*") {
+                            currentFunction.coveredLines++;
+                            currentFunction.isTouched = true;
+                            if (isLogicalLine(content)) {
+                                currentFunction.logicalCoveredLines++;
+                            }
+                        }
+                        else if (markerCol === "r") {
+                            currentFunction.revertedLines++;
+                            currentFunction.revertedContent.push(content);
+                            currentFunction.isReverted = true;
+                            currentFunction.isTouched = true;
+                            if (isLogicalLine(content)) {
+                                currentFunction.logicalCoveredLines++;
+                            }
+                        }
+                        else {
+                            currentFunction.untouchedLines++;
+                            currentFunction.untouchedContent.push(content);
+                            if (isLogicalLine(content)) {
+                                currentFunction.logicalUntouchedLines++;
+                            }
+                        }
+                    }
                     return;
                 }
             }
             if (functionBodyStarted) {
+                // Use compiler instrumentation to determine line activity.
+                // A line is active (executable) only if the compiler assigned it a hit count
+                // (parts[1] is non-empty, even if "0"). Lines without a hit count are structural
+                // (declarations, comments, formatting) and must not be counted.
                 if (trimmedContent === "assembly {") {
-                    const nextParts = lines[index + 1]
-                        .split("|")
-                        .map((part) => part.trim());
-                    if (nextParts[1] === "*") {
-                        currentFunction.coveredLines++;
-                        currentFunction.isTouched = true;
-                        if (isLogicalLine(content)) {
-                            currentFunction.logicalCoveredLines++;
-                        }
+                    // For assembly blocks: if the assembly { line itself is compiler-active,
+                    // use its own marker. Otherwise, fall back to the next line's marker.
+                    let effectiveMarker = markerCol;
+                    if (!isCompilerActive && index + 1 < lines.length) {
+                        const nextLineParts = lines[index + 1]
+                            .split("|")
+                            .map((part) => part.trim());
+                        effectiveMarker = nextLineParts.length >= 4 ? nextLineParts[2] : nextLineParts[1];
                     }
-                    else if (nextParts[1] === "r") {
-                        currentFunction.revertedLines++;
-                        currentFunction.revertedContent.push(content);
-                        currentFunction.isReverted = true;
-                        currentFunction.isTouched = true;
-                        if (isLogicalLine(content)) {
-                            currentFunction.logicalCoveredLines++;
+                    if (isCompilerActive || (index + 1 < lines.length)) {
+                        if (effectiveMarker === "*") {
+                            currentFunction.coveredLines++;
+                            currentFunction.isTouched = true;
+                            if (isLogicalLine(content)) {
+                                currentFunction.logicalCoveredLines++;
+                            }
                         }
-                    }
-                    else if (nextParts[1] === "" && isUntouchedLine(content)) {
-                        currentFunction.untouchedLines++;
-                        currentFunction.untouchedContent.push(content);
-                        if (isLogicalLine(content)) {
-                            currentFunction.logicalUntouchedLines++;
+                        else if (effectiveMarker === "r") {
+                            currentFunction.revertedLines++;
+                            currentFunction.revertedContent.push(content);
+                            currentFunction.isReverted = true;
+                            currentFunction.isTouched = true;
+                            if (isLogicalLine(content)) {
+                                currentFunction.logicalCoveredLines++;
+                            }
+                        }
+                        else if (isCompilerActive) {
+                            currentFunction.untouchedLines++;
+                            currentFunction.untouchedContent.push(content);
+                            if (isLogicalLine(content)) {
+                                currentFunction.logicalUntouchedLines++;
+                            }
                         }
                     }
                 }
@@ -133,53 +262,40 @@ function parseFunctions(lines, allFunctions) {
                     // Don't count closing brace
                     null;
                 }
-                else if (parts[1] === "*") {
+                else if (markerCol === "*") {
+                    // Line is covered (executed successfully)
                     currentFunction.coveredLines++;
                     currentFunction.isTouched = true;
-                    // Track logical coverage
                     if (isLogicalLine(content)) {
                         currentFunction.logicalCoveredLines++;
                     }
                 }
-                else if (parts[1] === "r") {
+                else if (markerCol === "r") {
+                    // Line was executed but reverted
                     currentFunction.revertedLines++;
                     currentFunction.revertedContent.push(content);
                     currentFunction.isReverted = true;
                     currentFunction.isTouched = true;
-                    // Track logical coverage for reverted lines
                     if (isLogicalLine(content)) {
                         currentFunction.logicalCoveredLines++;
                     }
                 }
-                else if (parts[1] === "" && isUntouchedLine(content)) {
-                    if (lines[index - 1]
-                        .split("|")
-                        .map((part) => part.trim())[2]
-                        .endsWith(",") ||
-                        content.startsWith('"') ||
-                        (lines[index - 1].split("|").map((part) => part.trim())[1] ===
-                            "*" &&
-                            lines[index + 1].split("|").map((part) => part.trim())[1] === "*")) {
-                        currentFunction.coveredLines++;
-                        currentFunction.isTouched = true;
-                        // Track logical coverage
-                        if (isLogicalLine(content)) {
-                            currentFunction.logicalCoveredLines++;
-                        }
-                    }
-                    else {
-                        currentFunction.untouchedLines++;
-                        currentFunction.untouchedContent.push(content);
-                        // Track logical coverage
-                        if (isLogicalLine(content)) {
-                            currentFunction.logicalUntouchedLines++;
-                        }
+                else if (isCompilerActive) {
+                    // Line is compiler-instrumented (has a hit count, even "0") but was not
+                    // executed. This is a genuinely uncovered executable line.
+                    currentFunction.untouchedLines++;
+                    currentFunction.untouchedContent.push(content);
+                    if (isLogicalLine(content)) {
+                        currentFunction.logicalUntouchedLines++;
                     }
                 }
+                // Lines where isCompilerActive is false are NOT instrumented by the compiler
+                // (no hit count). These are structural lines (declarations, formatting,
+                // multi-line continuations) and are intentionally not counted.
             }
-            if (content.includes("}")) {
-                bracketCount--;
-                if (bracketCount === 0 && currentFunction) {
+            if (closeBraces > 0) {
+                bracketCount -= closeBraces;
+                if (bracketCount <= 0 && currentFunction) {
                     functions.push(currentFunction);
                     currentFunction = null;
                     functionBodyStarted = false;
@@ -187,6 +303,13 @@ function parseFunctions(lines, allFunctions) {
             }
         }
     });
+    // Add contract-level lines if any were found
+    if (contractLevel.coveredLines > 0 || contractLevel.untouchedLines > 0 || contractLevel.revertedLines > 0) {
+        if (contractLevel.coveredLines > 0 && contractLevel.untouchedLines === 0 && contractLevel.revertedLines === 0) {
+            contractLevel.isTotallyCovered = true;
+        }
+        functions.push(contractLevel);
+    }
     functions.map((f) => {
         if (f.coveredLines > 0 && f.untouchedLines === 0 && f.revertedLines === 0) {
             f.isTotallyCovered = true;
